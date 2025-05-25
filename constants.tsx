@@ -27,7 +27,7 @@ export const SOCIAL_LINKS: SocialLinkItem[] = [
   },
   {
     name: 'Instagram',
-    url: 'https://www.instagram.com/enesaks/', // Corrected URL
+    url: 'https://www.instagram.com/enes.aks29/', // Corrected URL
     Icon: InstagramIcon,
     ariaLabel: 'Enes Aksu on Instagram',
   },
