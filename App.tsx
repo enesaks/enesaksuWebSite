@@ -58,7 +58,7 @@ const App: React.FC = () => {
       <div className="relative z-0"> {/* Ensure profile card is above background */}
         <ProfileCard
           name="Enes Aksu"
-          imageUrl="/components/foto.jpg"
+          imageUrl="https://r.resimlink.com/gltCIu9QX.jpg"
           socialLinks={SOCIAL_LINKS}
         />
       </div>
