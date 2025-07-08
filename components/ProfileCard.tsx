@@ -6,9 +6,10 @@ interface ProfileCardProps {
   name: string;
   imageUrl: string;
   socialLinks: SocialLinkItem[];
+  description?: string;
 }
 
-export const ProfileCard: React.FC<ProfileCardProps> = ({ name, imageUrl, socialLinks }) => {
+export const ProfileCard: React.FC<ProfileCardProps> = ({ name, imageUrl, socialLinks, description }) => {
   return (
     <div className="bg-custom-light-card dark:bg-custom-dark-card shadow-2xl rounded-xl p-8 md:p-12 text-center animate-fade-in max-w-md w-full mx-auto transition-colors duration-300">
       <img
@@ -19,9 +20,14 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ name, imageUrl, social
       <h1 className="text-3xl md:text-4xl font-bold text-custom-light-text dark:text-custom-dark-text mb-2">
         {name}
       </h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm md:text-base">
+      <p className="text-gray-600 dark:text-gray-400 mb-2 text-sm md:text-base">
         Computer Engineer Candidate
       </p>
+      {description && (
+        <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm md:text-base">
+          {description}
+        </p>
+      )}
       <div className="flex justify-center space-x-5 md:space-x-6">
         {socialLinks.map((link) => (
           <a

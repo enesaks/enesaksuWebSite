@@ -60,6 +60,7 @@ const App: React.FC = () => {
           name="Enes Aksu"
           imageUrl="https://r.resimlink.com/gltCIu9QX.jpg"
           socialLinks={SOCIAL_LINKS}
+          description="Merhaba! Yazılım geliştirmeyi seviyorum."
         />
       </div>
       <footer className="absolute bottom-4 text-center text-xs text-gray-500 dark:text-gray-400 z-10">
