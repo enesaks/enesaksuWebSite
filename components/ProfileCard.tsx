@@ -20,7 +20,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ name, imageUrl, social
         {name}
       </h1>
       <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm md:text-base">
-        Computer Engineer Candidate
+        Computer Engineer | .Net Software | Devops | Cloud
       </p>
       <div className="flex justify-center space-x-5 md:space-x-6">
         {socialLinks.map((link) => (
