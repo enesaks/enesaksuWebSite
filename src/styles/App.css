@@ -90,3 +90,27 @@
 .cmd-input::placeholder { color:var(--green-dark); }
 .blink { animation:blink 1s step-end infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.hack-mode-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  color: #00ff41;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 20px;
+  z-index: 9999;
+  overflow-y: hidden;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.hack-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: #00ff41;
+  animation: blink 1s step-end infinite;
+  vertical-align: bottom;
+  margin-left: 2px;
+}

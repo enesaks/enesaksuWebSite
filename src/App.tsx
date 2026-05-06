@@ -4,6 +4,7 @@ import './styles/App.css';
 // Components
 import BootScreen from './components/BootScreen';
 import SnakeGame from './components/SnakeGame';
+import MatrixRain from './components/MatrixRain';
 import AboutTab from './components/Tabs/AboutTab';
 import WritingsTab from './components/Tabs/WritingsTab';
 import ProjectsTab from './components/Tabs/ProjectsTab';
@@ -21,9 +22,13 @@ const App: React.FC = () => {
   const [historyIdx,setHistoryIdx]= useState(-1);
   const [draft,     setDraft]     = useState('');
   const [snakeOn,   setSnakeOn]   = useState(false);
+  const [matrixOn,  setMatrixOn]  = useState(false);
+  const [hackMode,  setHackMode]  = useState(false);
+  const [hackCode,  setHackCode]  = useState('');
 
   const histRef     = useRef<string[]>([]);
   const inputRef    = useRef<HTMLInputElement>(null);
+  const hackIdxRef  = useRef(0);
 
   useEffect(() => {
     const tick = () => setClock(new Date().toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
@@ -31,6 +36,65 @@ const App: React.FC = () => {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  const HACK_DUMMY_CODE = `
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/fs.h>
+#include <asm/uaccess.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Enes Aksu");
+MODULE_DESCRIPTION("A simple example Linux module.");
+
+static int __init hello_init(void) {
+    printk(KERN_INFO "Hello world 1.\\n");
+    // Establishing secure connection to target server...
+    // Bypassing firewall policies [OK]
+    // Escalating privileges... [ROOT]
+    return 0;
+}
+
+static void __exit hello_cleanup(void) {
+    printk(KERN_INFO "Cleaning up module.\\n");
+}
+
+module_init(hello_init);
+module_exit(hello_cleanup);
+
+// Dumping system hashes...
+// 0x4B1C 0x8F22 0x1A09 0x99BB
+// Access Granted.
+`.repeat(20);
+
+  useEffect(() => {
+    if (!hackMode) return;
+    hackIdxRef.current = 0;
+    setHackCode('');
+
+    const onK = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
+        setHackMode(false);
+        setCmdOutput('<span style="color:#ffb000">hack mode exited. connection terminated.</span>');
+        setTimeout(() => inputRef.current?.focus(), 50);
+        return;
+      }
+      e.preventDefault();
+      const charsToAdd = Math.floor(Math.random() * 5) + 3;
+      const nextChunk = HACK_DUMMY_CODE.substring(hackIdxRef.current, hackIdxRef.current + charsToAdd);
+      hackIdxRef.current = (hackIdxRef.current + charsToAdd) % HACK_DUMMY_CODE.length;
+      setHackCode(prev => prev + nextChunk);
+      
+      setTimeout(() => {
+        const overlay = document.getElementById('hack-overlay');
+        if (overlay) overlay.scrollTop = overlay.scrollHeight;
+      }, 0);
+    };
+
+    window.addEventListener('keydown', onK);
+    return () => window.removeEventListener('keydown', onK);
+  }, [hackMode, HACK_DUMMY_CODE]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     /* Tab autocomplete */
@@ -98,6 +162,20 @@ const App: React.FC = () => {
       return;
     }
 
+    /* matrix */
+    if (cmd === 'matrix') {
+      setMatrixOn(true);
+      inputRef.current?.blur();
+      return;
+    }
+
+    /* hack */
+    if (cmd === 'hack') {
+      setHackMode(true);
+      inputRef.current?.blur();
+      return;
+    }
+
     /* cd */
     if (cmd.startsWith('cd')) {
       const arg = cmd.slice(2).trim();
@@ -161,6 +239,26 @@ const App: React.FC = () => {
       ) : (
         <>
           <div className="scanline" />
+
+          {/* Matrix Overlay */}
+          {matrixOn && (
+            <MatrixRain onQuit={() => {
+              setMatrixOn(false);
+              setCmdOutput('<span style="color:#00ff41">matrix simulation ended.</span>');
+              setTimeout(() => inputRef.current?.focus(), 50);
+            }} />
+          )}
+
+          {/* Hacker Mode Overlay */}
+          {hackMode && (
+            <div id="hack-overlay" className="hack-mode-overlay">
+              {hackCode}
+              <span className="hack-cursor" />
+              <div style={{ position: 'fixed', top: 20, right: 20, background: 'rgba(0,0,0,0.8)', padding: 10, border: '1px solid #00ff41', fontSize: 11 }}>
+                [ TYPE ANYTHING TO HACK ] &nbsp;|&nbsp; [ ESC / Q TO EXIT ]
+              </div>
+            </div>
+          )}
 
           <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
 

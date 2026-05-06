@@ -2,7 +2,8 @@ export const TABS = ['about', 'writings', 'projects', 'contact'];
 
 export const ALL_CMDS = [
   'help', 'about', 'writings', 'projects', 'contact', 'whoami', 'date', 'ls',
-  'pwd', 'uname', 'clear', 'history', 'neofetch', 'cd', 'open', 'snake', 'blog'
+  'pwd', 'uname', 'clear', 'history', 'neofetch', 'cd', 'open', 'snake', 'blog',
+  'matrix', 'hack'
 ];
 
 export const BOOT = [
