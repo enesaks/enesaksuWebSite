@@ -1,50 +1,17 @@
-export const TABS = ['about', 'writings', 'projects', 'contact'];
-
-export const ALL_CMDS = [
-  'help', 'about', 'writings', 'projects', 'contact', 'whoami', 'date', 'ls',
-  'pwd', 'uname', 'clear', 'history', 'neofetch', 'cd', 'open', 'snake', 'blog',
-  'matrix', 'hack'
-];
-
 export const BOOT = [
-  { t: 0,    cls:'boot-title', text:'ENESAKSU OS v2.5.0 — Personal Terminal Portfolio' },
-  { t: 180,  cls:'boot-info',  text:'Kernel 6.8.0-enesaksu #1 SMP x86_64 GNU/Linux' },
-  { t: 320,  cls:'',           text:'' },
-  { t: 420,  cls:'boot-ok',   text:'[  OK  ] Starting docker.service' },
-  { t: 530,  cls:'boot-ok',   text:'[  OK  ] Starting ollama.service ... qwen3:14b loaded' },
-  { t: 640,  cls:'boot-ok',   text:'[  OK  ] Starting aws.credentials' },
-  { t: 750,  cls:'boot-warn', text:'[ WARN ] wsl2.memory: 16GB allocated (RTX 5060 Ti)' },
-  { t: 860,  cls:'boot-ok',   text:'[  OK  ] Fetching medium.com/@enesaks ... done' },
-  { t: 970,  cls:'boot-ok',   text:'[  OK  ] Fetching github.com/enesaks ... done' },
-  { t: 1080, cls:'boot-ok',   text:'[  OK  ] Starting portfolio.service on :3000' },
-  { t: 1180, cls:'',           text:'' },
-  { t: 1260, cls:'boot-ok',   text:'System ready. Welcome, Enes.' },
+  { t: 0,    cls:"c-bright", text:"ENESAKSU OS v2.5.0 (tty1)" },
+  { t: 160,  cls:"c-cyan",   text:"Kernel 6.8.0-enesaksu #1 SMP x86_64 GNU/Linux" },
+  { t: 300,  cls:"",         text:"" },
+  { t: 400,  cls:"",         text:"[    0.000000] BIOS-provided physical RAM map: 640K base, 32G extended" },
+  { t: 500,  cls:"ok",       text:"[  OK  ] Started docker.service" },
+  { t: 600,  cls:"ok",       text:"[  OK  ] Started ollama.service (qwen3:14b loaded)" },
+  { t: 700,  cls:"ok",       text:"[  OK  ] Reached target aws.credentials" },
+  { t: 800,  cls:"warn",     text:"[ WARN ] wsl2.memory: 16GB allocated (RTX 5060 Ti)" },
+  { t: 900,  cls:"ok",       text:"[  OK  ] Mounted medium.com/@enesaks on ~/writings" },
+  { t: 1000, cls:"ok",       text:"[  OK  ] Mounted github.com/enesaks on ~/projects" },
+  { t: 1100, cls:"ok",       text:"[  OK  ] Started portfolio.service on :3000" },
+  { t: 1220, cls:"",         text:"" },
 ];
-
-export const NEOFETCH_OUT = [
-  `<div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap;padding:6px 0">`,
-  `<pre style="color:var(--green);font-size:10px;line-height:1.05;margin:0;font-family:'JetBrains Mono',monospace">`,
-  [
-    `███████╗███╗   ██╗███████╗███████╗`,
-    `██╔════╝████╗  ██║██╔════╝██╔════╝`,
-    `█████╗  ██╔██╗ ██║█████╗  ███████╗`,
-    `██╔══╝  ██║╚██╗██║██╔══╝  ╚════██║`,
-    `███████╗██║ ╚████║███████╗███████║`,
-    `╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝`,
-  ].join('\n'),
-  `</pre><div style="line-height:1.8;font-size:13px">`,
-  `<span style="color:var(--cyan)">enes</span><span style="color:var(--muted)">@</span><span style="color:var(--cyan)">enesaks.com</span><br>`,
-  `<span style="color:var(--muted)">───────────────────────────</span><br>`,
-  `<span style="color:var(--cyan)">OS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ENESAKSU OS v2.5.0<br>`,
-  `<span style="color:var(--cyan)">Host&nbsp;&nbsp;&nbsp;</span> enesaks.com (Vercel)<br>`,
-  `<span style="color:var(--cyan)">Kernel&nbsp;</span> 6.8.0-enesaksu #1 SMP<br>`,
-  `<span style="color:var(--cyan)">Shell&nbsp;&nbsp;</span> bash 5.2.0<br>`,
-  `<span style="color:var(--cyan)">DE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> terminal-portfolio<br>`,
-  `<span style="color:var(--cyan)">GPU&nbsp;&nbsp;&nbsp;&nbsp;</span> RTX 5060 Ti 16GB<br>`,
-  `<span style="color:var(--cyan)">Memory&nbsp;</span> 16GB / 32GB<br>`,
-  `<span style="color:var(--cyan)">Uptime&nbsp;</span> since boot`,
-  `</div></div>`,
-].join('');
 
 export const ARTICLES = [
   { date:'AUG 18, 2025 · PINNED', title:'AWS ( Amazon Web Server ) Notlarım', desc:'AWS üzerinde çalışırken edindiğim bilgileri kısa ve öz şekilde topladığım notlardır.', tags:['AWS','CLOUD'], url:'https://medium.com/@enesaks/aws-amazon-web-server-notlar%C4%B1m-c92b29da0c6c' },

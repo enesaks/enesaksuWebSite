@@ -1,342 +1,425 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import './styles/App.css';
 
-// Components
-import BootScreen from './components/BootScreen';
 import SnakeGame from './components/SnakeGame';
 import MatrixRain from './components/MatrixRain';
-import AboutTab from './components/Tabs/AboutTab';
-import WritingsTab from './components/Tabs/WritingsTab';
-import ProjectsTab from './components/Tabs/ProjectsTab';
-import ContactTab from './components/Tabs/ContactTab';
+import HackMode from './components/HackMode';
+import { BOOT } from './data/constants';
+import { loadRemote } from './terminal/remote';
+import { cwdLabel, cwdAbs, resolvePath, completePath, Kind } from './terminal/fs';
+import {
+  RunContext, About, Experience, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS,
+} from './terminal/outputs';
 
-// Data
-import { TABS, ALL_CMDS, NEOFETCH_OUT } from './data/constants';
+const COMMANDS = [
+  'about', 'cat', 'cd', 'clear', 'contact', 'crt', 'date', 'echo', 'exit', 'experience', 'hack', 'help', 'history',
+  'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'snake', 'tree', 'uname', 'uptime', 'whoami', 'writings',
+];
+const WINDOWS = ['about', 'writings', 'projects', 'contact', 'help'];
+const HISTORY_KEY = 'enesaks.history';
+
+type Program = null | 'snake' | 'matrix' | 'hack';
+interface Line { id: number; node: React.ReactNode }
+
+const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+const loadHistory = (): string[] => {
+  try { const v = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); return Array.isArray(v) ? v.slice(-100) : []; }
+  catch { return []; }
+};
+const saveHistory = (h: string[]) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(-100))); } catch { /* storage unavailable */ } };
+
+const Prompt: React.FC<{ cwd: string }> = ({ cwd }) => (
+  <span className="prompt"><span className="c-green">enes@enesaks</span>:<span className="c-blue">{cwdLabel(cwd)}</span>$ </span>
+);
+
+const BootLine: React.FC<{ text: string; cls: string }> = ({ text, cls }) => {
+  const m = text.match(/^(\[\s*(?:OK|WARN)\s*\])(.*)$/);
+  if (!m) return <div className={cls}>{text || ' '}</div>;
+  return <div><span className={cls === 'warn' ? 'c-amber' : 'c-green'}>{m[1]}</span>{m[2]}</div>;
+};
+
+const Clock: React.FC = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return <>{p(now.getHours())}:{p(now.getMinutes())} {p(now.getDate())}.{p(now.getMonth() + 1)}.{String(now.getFullYear()).slice(2)}</>;
+};
 
 const App: React.FC = () => {
-  const [booted,    setBooted]    = useState(false);
-  const [activeTab, setActiveTab] = useState('about');
-  const [cmdValue,  setCmdValue]  = useState('');
-  const [cmdOutput, setCmdOutput] = useState('');
-  const [clock,     setClock]     = useState('');
-  const [historyIdx,setHistoryIdx]= useState(-1);
-  const [draft,     setDraft]     = useState('');
-  const [snakeOn,   setSnakeOn]   = useState(false);
-  const [matrixOn,  setMatrixOn]  = useState(false);
-  const [hackMode,  setHackMode]  = useState(false);
-  const [hackCode,  setHackCode]  = useState('');
+  const [lines, setLines] = useState<Line[]>([]);
+  const [bootCount, setBootCount] = useState(0);
+  const [booting, setBooting] = useState(true);
+  const [cwd, setCwd] = useState('');
+  const [input, setInput] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const [program, setProgram] = useState<Program>(null);
+  const [crt, setCrt] = useState(true);
+  const [power, setPower] = useState(true);
+  const [active, setActive] = useState('about');
 
-  const histRef     = useRef<string[]>([]);
-  const inputRef    = useRef<HTMLInputElement>(null);
-  const hackIdxRef  = useRef(0);
+  const cwdRef = useRef('');
+  const histRef = useRef<string[]>(loadHistory());
+  const histIdx = useRef(-1);
+  const draft = useRef('');
+  const idRef = useRef(0);
+  const anchorRef = useRef<number | null>(null);   // id of the line a long output should start from
+  const busyRef = useRef(false);
+  const bootedRef = useRef(false);
+  const startedAt = useRef(Date.now());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const tick = () => setClock(new Date().toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+  const print = useCallback((...nodes: React.ReactNode[]) => {
+    const fresh = nodes.map(node => ({ id: ++idRef.current, node }));
+    anchorRef.current = fresh[0]?.id ?? null;
+    setLines(prev => [...prev, ...fresh].slice(-500));
   }, []);
 
-  const HACK_DUMMY_CODE = `
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/fs.h>
-#include <asm/uaccess.h>
+  const focusInput = useCallback(() => setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 30), []);
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Enes Aksu");
-MODULE_DESCRIPTION("A simple example Linux module.");
+  /* ───────── command interpreter ───────── */
+  const execute = useCallback((raw: string) => {
+    const here = cwdRef.current;
+    const echo = <div className="echo"><Prompt cwd={here} />{raw}</div>;
+    const trimmed = raw.trim();
+    histIdx.current = -1;
+    draft.current = '';
+    if (!trimmed) { print(echo); return; }
 
-static int __init hello_init(void) {
-    printk(KERN_INFO "Hello world 1.\\n");
-    // Establishing secure connection to target server...
-    // Bypassing firewall policies [OK]
-    // Escalating privileges... [ROOT]
-    return 0;
-}
+    const hist = histRef.current;
+    if (hist[hist.length - 1] !== trimmed) { hist.push(trimmed); saveHistory(hist); }
 
-static void __exit hello_cleanup(void) {
-    printk(KERN_INFO "Cleaning up module.\\n");
-}
+    const [name, ...args] = trimmed.split(/\s+/);
+    const cmd = name.toLowerCase();
+    const out = (node: React.ReactNode) => print(echo, <div className="out">{node}</div>);
+    const launch = (p: Program) => { print(echo); setProgram(p); inputRef.current?.blur(); };
 
-module_init(hello_init);
-module_exit(hello_cleanup);
+    switch (cmd) {
+      case 'help': case '?': setActive('help'); return out(<Help />);
+      case 'about': setActive('about'); return out(<About />);
+      case 'experience': return out(<Experience />);
+      case 'writings': case 'blog': setActive('writings'); return out(<Writings />);
+      case 'projects': setActive('projects'); return out(<Projects />);
+      case 'contact': setActive('contact'); return out(<Contact />);
 
-// Dumping system hashes...
-// 0x4B1C 0x8F22 0x1A09 0x99BB
-// Access Granted.
-`.repeat(20);
+      case 'clear': setLines([]); return;
+      case 'pwd': return out(cwdAbs(here));
+      case 'whoami': return out('enes');
+      case 'hostname': return out('enesaks.com');
+      case 'date': return out(new Date().toString());
+      case 'uname': return out(args.some(a => a.includes('a')) ? 'Linux enesaks.com 6.8.0-enesaksu #1 SMP x86_64 GNU/Linux' : 'Linux');
+      case 'echo': return out(trimmed.slice(4).trim().replace(/^(["'])(.*)\1$/, '$2') || ' ');
+      case 'tree': return out(<Tree />);
+      case 'neofetch': return out(<Neofetch uptime={uptime(startedAt.current)} />);
+      case 'uptime': return out(` ${new Date().toLocaleTimeString('tr-TR')} up ${uptime(startedAt.current)},  1 user,  load average: 0.08, 0.03, 0.01`);
+
+      case 'history':
+        return out(<div className="pre">{hist.map((h, i) => <div key={i}><span className="c-dim">{String(i + 1).padStart(4, ' ')}</span>  {h}</div>)}</div>);
+
+      case 'ls': case 'll': case 'dir': {
+        const flags = args.filter(a => a.startsWith('-')).join('');
+        const target = args.find(a => !a.startsWith('-'));
+        const r = target ? resolvePath(here, target) : { ok: true as const, dir: here, entry: undefined };
+        if (!r.ok) return out(`ls: cannot access '${target}': No such file or directory`);
+        return out(<Ls dir={r.dir} long={cmd === 'll' || flags.includes('l')} all={flags.includes('a')} only={r.entry} />);
+      }
+
+      case 'cd': {
+        const target = args[0];
+        const r = !target ? { ok: true as const, dir: '', entry: undefined } : resolvePath(here, target);
+        if (!r.ok) return out(`bash: cd: ${target}: No such file or directory`);
+        if (r.entry) return out(r.entry.kind === 'repo'
+          ? `bash: cd: ${target}: uzak depo — tarayıcıda açmak için: open ${target}`
+          : `bash: cd: ${target}: Not a directory`);
+        cwdRef.current = r.dir;
+        setCwd(r.dir);
+        if (r.dir) setActive(r.dir);
+        return print(echo);
+      }
+
+      case 'cat': case 'less': case 'more': {
+        if (!args.length) return out(`${cmd}: missing operand`);
+        return out(args.map((a, i) => {
+          const r = resolvePath(here, a);
+          if (!r.ok) return <div key={i}>{cmd}: {a}: No such file or directory</div>;
+          const e = r.entry;
+          if (!e || e.kind === 'repo') return <div key={i}>{cmd}: {a}: Is a directory</div>;
+          if (e.article) return <ArticleFile key={i} article={e.article} />;
+          if (e.name === 'about.txt') return <About key={i} />;
+          if (e.name === 'experience.log') return <Experience key={i} />;
+          if (e.name === 'contact.json') return <Contact key={i} />;
+          return <div key={i} className="pre">{'#!/bin/bash\n# ASCII snake — WASD / ok tuşları, Q ile çık\nexec /usr/games/snake "$@"'}</div>;
+        }));
+      }
+
+      case 'open': case 'xdg-open': {
+        const target = args[0];
+        if (!target) return out('open: kullanım: open github|linkedin|medium|instagram|mail|<dosya>|<URL>');
+        let url = LINKS[target.toLowerCase()] || (/^https?:\/\//i.test(target) ? target : '');
+        if (!url) {
+          const r = resolvePath(here, target);
+          if (r.ok && r.entry) url = r.entry.article?.url || r.entry.project?.url || '';
+        }
+        if (!url) return out(`open: ${target}: hedef bulunamadı`);
+        window.open(url, '_blank', 'noopener');
+        return out(<span>Opening <span className="c-cyan">{url}</span> ...</span>);
+      }
+
+      case 'crt': {
+        const arg = (args[0] || '').toLowerCase();
+        if (arg !== 'on' && arg !== 'off') return out('kullanım: crt on|off');
+        setCrt(arg === 'on');
+        return out(`crt efektleri: ${arg}`);
+      }
+
+      case 'snake': case './snake.sh': case 'snake.sh': return launch('snake');
+      case 'matrix': case 'cmatrix': return launch('matrix');
+      case 'hack': return launch('hack');
+
+      case 'sudo': case 'su': return out('enes is not in the sudoers file.  This incident will be reported.');
+      case 'rm': case 'mv': case 'touch': case 'mkdir': case 'cp': case 'nano': case 'vim': case 'vi':
+        return out(`${cmd}: cannot modify '${args[args.length - 1] || '.'}': Read-only file system`);
+      case 'exit': case 'logout': return out(<span>logout<br /><span className="c-dim">(bu oturum kapanmaz — çıkmak için sekmeyi kapat)</span></span>);
+
+      default:
+        return out(<span>bash: {name}: command not found<br /><span className="c-dim">komut listesi için: help</span></span>);
+    }
+  }, [print]);
+
+  /* Types a command into the prompt and runs it — used by clickable names and the status bar. */
+  const typeAndRun = useCallback((cmd: string) => {
+    if (busyRef.current || !bootedRef.current) return;
+    if (reducedMotion()) { execute(cmd); focusInput(); return; }
+    busyRef.current = true;
+    let i = 0;
+    const step = () => {
+      i++;
+      setInput(cmd.slice(0, i));
+      setCursor(i);
+      if (i < cmd.length) { setTimeout(step, 22); return; }
+      setTimeout(() => {
+        setInput(''); setCursor(0);
+        busyRef.current = false;
+        execute(cmd);
+        focusInput();
+      }, 160);
+    };
+    step();
+  }, [execute, focusInput]);
+
+  /* ───────── boot sequence ───────── */
+  const finishBoot = useCallback(() => {
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+    print(
+      ...BOOT.map(l => <BootLine text={l.text} cls={l.cls} />),
+      <div>enesaks login: enes (automatic login)</div>,
+      <div className="c-dim">Last login: {new Date().toString().slice(0, 24)} on tty1</div>,
+      <div>{' '}</div>,
+    );
+    setBooting(false);
+    setTimeout(() => typeAndRun('cat about.txt'), 300);
+  }, [print, typeAndRun]);
 
   useEffect(() => {
-    if (!hackMode) return;
-    hackIdxRef.current = 0;
-    setHackCode('');
-
-    const onK = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
-        setHackMode(false);
-        setCmdOutput('<span style="color:var(--amber)">hack mode exited. connection terminated.</span>');
-        setTimeout(() => inputRef.current?.focus(), 50);
-        return;
-      }
-      e.preventDefault();
-      const charsToAdd = Math.floor(Math.random() * 5) + 3;
-      const nextChunk = HACK_DUMMY_CODE.substring(hackIdxRef.current, hackIdxRef.current + charsToAdd);
-      hackIdxRef.current = (hackIdxRef.current + charsToAdd) % HACK_DUMMY_CODE.length;
-      setHackCode(prev => prev + nextChunk);
-      
-      setTimeout(() => {
-        const overlay = document.getElementById('hack-overlay');
-        if (overlay) overlay.scrollTop = overlay.scrollHeight;
-      }, 0);
+    loadRemote();
+    if (bootedRef.current) return;
+    if (reducedMotion()) { finishBoot(); return; }
+    const last = Math.max(...BOOT.map(l => l.t));
+    const timers = BOOT.map((l, i) => setTimeout(() => setBootCount(i + 1), 900 + l.t));
+    timers.push(setTimeout(finishBoot, 900 + last + 350));
+    const skip = () => finishBoot();
+    window.addEventListener('keydown', skip);
+    window.addEventListener('pointerdown', skip);
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener('keydown', skip);
+      window.removeEventListener('pointerdown', skip);
     };
+  }, [finishBoot]);
 
-    window.addEventListener('keydown', onK);
-    return () => window.removeEventListener('keydown', onK);
-  }, [hackMode, HACK_DUMMY_CODE]);
+  /* Keep the newest output in view; long outputs start from their command line instead of their end. */
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    if (!box) return;
+    const anchor = anchorRef.current;
+    anchorRef.current = null;
+    const el = anchor != null ? box.querySelector<HTMLElement>(`[data-line="${anchor}"]`) : null;
+    if (el && box.scrollHeight - el.offsetTop > box.clientHeight) box.scrollTop = el.offsetTop - 8;
+    else box.scrollTop = box.scrollHeight;
+  }, [lines, bootCount, booting]);
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    if (box && input) box.scrollTop = box.scrollHeight;
+  }, [input]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    /* Tab autocomplete */
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const val = cmdValue.toLowerCase().trimStart();
-      if (val.startsWith('cd ')) {
-        const match = TABS.find(t => t.startsWith(val.slice(3)) && t !== val.slice(3));
-        if (match) setCmdValue(`cd ${match}`);
-      } else if (val.length > 0) {
-        const match = ALL_CMDS.find(c => c.startsWith(val) && c !== val);
-        if (match) setCmdValue(match);
-      }
+  /* ───────── keyboard ───────── */
+  const setLine = (value: string) => { setInput(value); setCursor(value.length); };
+
+  const complete = () => {
+    const firstWord = /^\S*$/.test(input);
+    const cut = input.lastIndexOf(' ');
+    const head = firstWord ? '' : input.slice(0, cut + 1);
+    const partial = firstWord ? input : input.slice(cut + 1);
+    let base = '';
+    let names: { name: string; kind: Kind | 'cmd' }[];
+    if (firstWord && !input.startsWith('./') && !input.includes('/')) {
+      if (!input) return;
+      names = COMMANDS.filter(c => c.startsWith(input.toLowerCase())).map(name => ({ name, kind: 'cmd' as const }));
+    } else {
+      const r = completePath(cwdRef.current, partial.replace(/^\.\//, ''));
+      base = (partial.startsWith('./') ? './' : '') + r.base;
+      names = r.names;
+    }
+    if (!names.length) return;
+    if (names.length === 1) {
+      setLine(head + base + names[0].name + (names[0].kind === 'dir' ? '/' : ' '));
       return;
     }
+    let common = names[0].name;
+    for (const n of names) while (!n.name.startsWith(common)) common = common.slice(0, -1);
+    if ((base + common).length > partial.length) { setLine(head + base + common); return; }
+    print(
+      <div className="echo"><Prompt cwd={cwdRef.current} />{input}</div>,
+      <div className="out ls-grid">{names.map(n => <span key={n.name} className={n.kind === 'dir' || n.kind === 'repo' ? 'c-blue' : ''}>{n.name}{n.kind === 'dir' || n.kind === 'repo' ? '/' : ''}</span>)}</div>,
+    );
+  };
 
-    /* History navigation */
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (busyRef.current) { e.preventDefault(); return; }
+    const key = e.key.toLowerCase();
+
+    if (e.ctrlKey && key === 'l') { e.preventDefault(); setLines([]); return; }
+    if (e.ctrlKey && key === 'u') { e.preventDefault(); setLine(''); return; }
+    if (e.ctrlKey && key === 'c') {
+      if (window.getSelection()?.toString()) return;   // let the browser copy the selection
+      e.preventDefault();
+      print(<div className="echo"><Prompt cwd={cwdRef.current} />{input}^C</div>);
+      setLine('');
+      return;
+    }
+    if (e.key === 'Tab') { e.preventDefault(); complete(); return; }
+
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       const hist = histRef.current;
       if (!hist.length) return;
-      if (historyIdx === -1) { setDraft(cmdValue); setHistoryIdx(hist.length-1); setCmdValue(hist[hist.length-1]); }
-      else if (historyIdx > 0) { setHistoryIdx(historyIdx-1); setCmdValue(hist[historyIdx-1]); }
+      if (histIdx.current === -1) { draft.current = input; histIdx.current = hist.length - 1; }
+      else if (histIdx.current > 0) histIdx.current--;
+      setLine(hist[histIdx.current]);
       return;
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (historyIdx === -1) return;
+      if (histIdx.current === -1) return;
       const hist = histRef.current;
-      if (historyIdx >= hist.length-1) { setHistoryIdx(-1); setCmdValue(draft); }
-      else { setHistoryIdx(historyIdx+1); setCmdValue(hist[historyIdx+1]); }
+      if (histIdx.current >= hist.length - 1) { histIdx.current = -1; setLine(draft.current); }
+      else { histIdx.current++; setLine(hist[histIdx.current]); }
       return;
     }
-
-    if (e.key !== 'Enter') return;
-
-    const raw = cmdValue.trim();
-    const cmd = raw.toLowerCase();
-    setCmdValue('');
-    setHistoryIdx(-1);
-    setDraft('');
-    if (!cmd) return;
-
-    if (histRef.current[histRef.current.length-1] !== raw)
-      histRef.current = [...histRef.current.slice(-49), raw];
-
-    const TAB_CMDS: Record<string,string> = {
-      about:'about', writings:'writings', blog:'writings', projects:'projects', contact:'contact',
-    };
-    const PWD: Record<string,string> = {
-      about:'/home/enes/portfolio/about', writings:'/home/enes/portfolio/writings',
-      projects:'/home/enes/portfolio/projects', contact:'/home/enes/portfolio/contact',
-    };
-    const LS: Record<string,string> = {
-      about:   'about.txt&nbsp;&nbsp;experience.log',
-      writings:'aws-notlarim.md&nbsp;&nbsp;git-notlarim.md&nbsp;&nbsp;linux-scripting.md&nbsp;&nbsp;docker-notlarim.md',
-      projects:'AWS-IAM-S3-Ec2/&nbsp;&nbsp;Linux-Git-GitHub/&nbsp;&nbsp;dotNetFurniture/&nbsp;&nbsp;AuthorizationAPI/&nbsp;&nbsp;enesaksuWebSite/',
-      contact: 'github.lnk&nbsp;&nbsp;medium.lnk&nbsp;&nbsp;linkedin.lnk&nbsp;&nbsp;gmail.lnk&nbsp;&nbsp;instagram.lnk',
-    };
-
-    /* snake */
-    if (cmd === 'snake') {
-      setSnakeOn(true);
-      inputRef.current?.blur();
-      return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = input;
+      setLine('');
+      execute(value);
     }
-
-    /* matrix */
-    if (cmd === 'matrix') {
-      setMatrixOn(true);
-      inputRef.current?.blur();
-      return;
-    }
-
-    /* hack */
-    if (cmd === 'hack') {
-      setHackMode(true);
-      inputRef.current?.blur();
-      return;
-    }
-
-    /* cd */
-    if (cmd.startsWith('cd')) {
-      const arg = cmd.slice(2).trim();
-      if (!arg || arg === '~' || arg === '..') { setActiveTab('about'); setCmdOutput('<span style="color:var(--green)">/home/enes/portfolio/about</span>'); }
-      else if (TAB_CMDS[arg]) { setActiveTab(TAB_CMDS[arg]); setCmdOutput(`<span style="color:var(--green)">/home/enes/portfolio/${TAB_CMDS[arg]}</span>`); }
-      else setCmdOutput(`<span style="color:var(--red)">cd: ${arg}: No such directory</span>`);
-      return;
-    }
-
-    /* open */
-    if (cmd.startsWith('open ')) {
-      const arg = raw.slice(5).trim();
-      const LINKS: Record<string,string> = {
-        medium:'https://medium.com/@enesaks', github:'https://github.com/enesaks',
-        linkedin:'https://www.linkedin.com/in/enesaks', instagram:'https://www.instagram.com/enes.aks29',
-      };
-      const url = LINKS[arg.toLowerCase()] || arg;
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        window.open(url, '_blank');
-        setCmdOutput(`<span style="color:var(--green)">→ opening ${url}</span>`);
-      } else {
-        setCmdOutput(`<span style="color:var(--red)">open: bilinmeyen hedef. Kullanım: open medium|github|linkedin|instagram veya tam URL</span>`);
-      }
-      return;
-    }
-
-    /* history */
-    if (cmd === 'history') {
-      const hist = histRef.current;
-      setCmdOutput(hist.length === 0
-        ? '<span style="color:var(--muted)">henüz komut girilmedi</span>'
-        : hist.map((c: string, i: number) =>
-            `<span style="color:var(--muted)">${String(i+1).padStart(3)}</span>  <span style="color:var(--green)">${c}</span>`
-          ).join('<br>')
-      );
-      return;
-    }
-
-    const OUTPUTS: Record<string,string> = {
-      help:    `<span style="color:var(--green)">Komutlar: about | writings | projects | contact | cd &lt;tab&gt; | cd .. | open &lt;hedef&gt; | ls | pwd | whoami | date | uname | history | neofetch | snake | matrix | hack | clear</span>`,
-      whoami:  '<span style="color:var(--green)">enes aksu — junior devops engineer — istanbul, tr</span>',
-      date:    `<span style="color:var(--green)">${new Date().toLocaleString('tr-TR')}</span>`,
-      uname:   '<span style="color:var(--green)">Linux enesaks.com 6.8.0 #1 SMP x86_64 GNU/Linux</span>',
-      pwd:     `<span style="color:var(--green)">${PWD[activeTab]}</span>`,
-      ls:      `<span style="color:var(--green)">${LS[activeTab]}</span>`,
-      neofetch: NEOFETCH_OUT,
-    };
-
-    if (TAB_CMDS[cmd]) { setActiveTab(TAB_CMDS[cmd]); setCmdOutput(`<span style="color:var(--green)">${TAB_CMDS[cmd]} açıldı</span>`); }
-    else if (cmd === 'clear') setCmdOutput('');
-    else if (OUTPUTS[cmd]) setCmdOutput(OUTPUTS[cmd]);
-    else setCmdOutput(`<span style="color:var(--red)">bash: ${cmd}: command not found — 'help' yazın</span>`);
   };
 
-  const openLink = (url: string) => window.open(url, '_blank');
+  const quitProgram = useCallback((message: string) => {
+    setProgram(null);
+    print(<div className="out c-dim">{message}</div>);
+    focusInput();
+  }, [print, focusInput]);
+  const quitSnake = useCallback(() => quitProgram('[snake] oyun kapatıldı'), [quitProgram]);
+  const quitMatrix = useCallback(() => quitProgram('[matrix] simulation ended'), [quitProgram]);
+  const quitHack = useCallback(() => quitProgram('[hack] connection terminated'), [quitProgram]);
+
+  const caret = Math.min(cursor, input.length);
 
   return (
-    <div className="crt-wrapper">
-      {!booted ? (
-        <div className="window">
-          <div className="topbar">
-            <div className="dots">
-              <div className="dot" style={{ background:'#ff5f57' }} />
-              <div className="dot" style={{ background:'#febc2e' }} />
-              <div className="dot" style={{ background:'#28c840' }} />
+    <div className={`room${crt ? '' : ' crt-off'}${power ? '' : ' power-off'}`}>
+      <div className="monitor">
+        <div className="screen">
+          <div className="tube">
+            <RunContext.Provider value={typeAndRun}>
+              <div
+                className="term"
+                ref={scrollRef}
+                onClick={() => { if (!window.getSelection()?.toString()) inputRef.current?.focus({ preventScroll: true }); }}
+              >
+                {booting && BOOT.slice(0, bootCount).map((l, i) => <BootLine key={i} text={l.text} cls={l.cls} />)}
+                {lines.map(l => <div key={l.id} data-line={l.id}>{l.node}</div>)}
+
+                {!booting && (
+                  <div className="input-line">
+                    <Prompt cwd={cwd} />
+                    <span>{input.slice(0, caret)}</span>
+                    <span className={`cursor${focused ? '' : ' idle'}`}>{input[caret] || ' '}</span>
+                    <span>{input.slice(caret + 1)}</span>
+                    <input
+                      ref={inputRef}
+                      className="ghost-input"
+                      aria-label="Terminal komutu"
+                      value={input}
+                      onChange={e => { if (busyRef.current) return; setInput(e.target.value); setCursor(e.target.selectionStart ?? e.target.value.length); histIdx.current = -1; }}
+                      onSelect={e => setCursor(e.currentTarget.selectionStart ?? input.length)}
+                      onKeyDown={onKeyDown}
+                      onFocus={() => setFocused(true)}
+                      onBlur={() => setFocused(false)}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                )}
+              </div>
+            </RunContext.Provider>
+
+            {/* tmux-style status bar: the clickable way around for visitors who would rather not type */}
+            <div className="tmux">
+              <span className="tmux-session">[enes]</span>
+              <span className="tmux-windows">
+                {WINDOWS.map((w, i) => (
+                  <button key={w} type="button" className={active === w ? 'on' : ''} onClick={() => typeAndRun(w)}>
+                    {i}:{w}{active === w ? '*' : ''}
+                  </button>
+                ))}
+              </span>
+              <span className="tmux-right">"enesaks" <Clock /></span>
             </div>
-            <div className="topbar-title">enesaks.com — booting…</div>
+
+            {program === 'snake' && <div className="program"><SnakeGame onQuit={quitSnake} /></div>}
+            {program === 'matrix' && <div className="program"><MatrixRain onQuit={quitMatrix} /></div>}
+            {program === 'hack' && <div className="program"><HackMode onQuit={quitHack} /></div>}
           </div>
-          <div className="body">
-            <BootScreen onBootComplete={() => setBooted(true)} />
-          </div>
+
+          <div className="fx fx-scan" />
+          <div className="fx fx-roll" />
+          <div className="fx fx-flicker" />
+          <div className="fx fx-glass" />
         </div>
-      ) : (
-        <>
 
-          {/* Matrix Overlay */}
-          {matrixOn && (
-            <MatrixRain onQuit={() => {
-              setMatrixOn(false);
-              setCmdOutput('<span style="color:var(--green)">matrix simulation ended.</span>');
-              setTimeout(() => inputRef.current?.focus(), 50);
-            }} />
-          )}
-
-          {/* Hacker Mode Overlay */}
-          {hackMode && (
-            <div id="hack-overlay" className="hack-mode-overlay">
-              {hackCode}
-              <span className="hack-cursor" />
-              <div style={{ position: 'fixed', top: 20, right: 20, background: 'rgba(0,0,0,0.8)', padding: 10, border: '1px solid #00ff41', fontSize: 11 }}>
-                [ TYPE ANYTHING TO HACK ] &nbsp;|&nbsp; [ ESC / Q TO EXIT ]
-              </div>
-            </div>
-          )}
-
-          <div className="window">
-
-            {/* TOPBAR */}
-            <div className="topbar">
-              <div className="dots">
-                <div className="dot" style={{ background:'#ff5f57' }} />
-                <div className="dot" style={{ background:'#febc2e' }} />
-                <div className="dot" style={{ background:'#28c840' }} />
-              </div>
-              <div className="topbar-title">enes@enesaks.com: ~/{activeTab}</div>
-              <div className="topbar-clock">{clock}</div>
-            </div>
-
-            {/* NAV */}
-            <nav className="nav" style={{ opacity: snakeOn ? 0.3 : 1, pointerEvents: snakeOn ? 'none' : 'auto' }}>
-              {TABS.map(tab => (
-                <button key={tab} className={`nav-btn${activeTab===tab?' active':''}`} onClick={() => setActiveTab(tab)}>
-                  ~/{tab}
-                </button>
-              ))}
-            </nav>
-
-            {/* CONTENT */}
-            <div className="body">
-            <div className="scanline" />
-            <div className="content" key={snakeOn ? 'snake' : activeTab}>
-              {snakeOn ? (
-                <SnakeGame onQuit={() => {
-                  setSnakeOn(false);
-                  setCmdOutput('<span style="color:var(--muted)">snake kapatıldı — hoş geldin geri</span>');
-                  setTimeout(() => inputRef.current?.focus(), 50);
-                }} />
-              ) : (
-                <>
-                  {activeTab === 'about' && <AboutTab />}
-                  {activeTab === 'writings' && <WritingsTab openLink={openLink} />}
-                  {activeTab === 'projects' && <ProjectsTab />}
-                  {activeTab === 'contact' && <ContactTab />}
-                </>
-              )}
-            </div>
-
-            {/* CMD */}
-            <div className="cmd-output" dangerouslySetInnerHTML={{ __html: cmdOutput }} />
-            <div className="cmd-bar">
-              <span className="cmd-prompt-label">enes@portfolio:~$</span>
-              <input
-                ref={inputRef}
-                className="cmd-input"
-                placeholder="komut girin... (help | Tab: tamamla | ↑↓: geçmiş)"
-                aria-label="Terminal komutu"
-                value={cmdValue}
-                onChange={e => { setCmdValue(e.target.value); if (historyIdx !== -1) setHistoryIdx(-1); }}
-                onKeyDown={handleKeyDown}
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck={false}
-              />
-            </div>
-            </div>
-
-          </div>
-        </>
-      )}
+        <div className="chin">
+          <span className="brand">ENESAKS</span>
+          <span className="model">EA-1401 · PHOSPHOR DISPLAY</span>
+          <span className="knobs" aria-hidden="true"><i /><i /></span>
+          <button type="button" className="power" aria-label={power ? 'Monitörü kapat' : 'Monitörü aç'} title="Güç" onClick={() => setPower(p => !p)}>
+            <span className="led" />
+          </button>
+        </div>
+      </div>
     </div>
   );
+};
+
+const uptime = (since: number) => {
+  const s = Math.floor((Date.now() - since) / 1000);
+  if (s < 60) return `${s} sec`;
+  const m = Math.floor(s / 60);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 };
 
 export default App;

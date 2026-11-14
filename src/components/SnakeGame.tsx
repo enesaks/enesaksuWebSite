@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const S_COLS = 30;
 const S_ROWS = 20;
-const S_CELL = 17;
 
 type Vec = { x: number; y: number };
 type GS  = { snake: Vec[]; dir: Vec; next: Vec; food: Vec; score: number; alive: boolean };
@@ -129,27 +128,26 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onQuit }) => {
 
   return (
     <div style={{
-      display:'flex', flexDirection:'column', alignItems:'flex-start',
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', overflow:'auto', padding:12,
       fontFamily:"'JetBrains Mono',monospace", width: '100%'
     }}>
-      <div className="prompt-line">enes@portfolio:~$ <span className="prompt-cmd">./snake.sh</span></div>
       
       {/* header */}
-      <div style={{ color:'var(--green)', fontSize:12, letterSpacing:1, marginBottom:10 }}>
+      <div style={{ color:'#6cf58f', fontSize:12, letterSpacing:1, marginBottom:10 }}>
         {'SNAKE v1.0 (ASCII MODE)'}&nbsp;&nbsp;&nbsp;
-        {'SCORE: '}<span style={{ color:'#00ff41', fontWeight:'bold' }}>{score}</span>
-        &nbsp;&nbsp;&nbsp;{'['}<span style={{ color:'#00cc33' }}>WASD / ARROWS</span>{']'}&nbsp;&nbsp;&nbsp;{'['}<span style={{ color:'#ff4444' }}>Q/ESC: QUIT</span>{']'}
-        {over && <span style={{ color: '#ffb000', fontWeight:'bold' }}> &nbsp;&nbsp;&nbsp;[R: RESTART]</span>}
+        {'SCORE: '}<span style={{ color:'#6cf58f', fontWeight:'bold' }}>{score}</span>
+        &nbsp;&nbsp;&nbsp;{'['}<span style={{ color:'#3f9a5a' }}>WASD / ARROWS</span>{']'}&nbsp;&nbsp;&nbsp;<button type="button" className="cmd-link" style={{ color:'#ff7a6b' }} onClick={onQuit}>[Q/ESC: QUIT]</button>
+        {over && <span style={{ color: '#ffcf5c', fontWeight:'bold' }}> &nbsp;&nbsp;&nbsp;[R: RESTART]</span>}
       </div>
 
       {/* ascii canvas */}
       <div style={{ position:'relative', display:'inline-block' }}>
         <pre style={{
           margin: 0,
-          color: '#00ff41',
-          background: '#0a0a0a',
+          color: '#6cf58f',
+          background: 'transparent',
           padding: '10px',
-          border: '1px solid #007a1f',
+          border: '1px solid #3f9a5a',
           lineHeight: '1.2',
           fontSize: '14px',
           fontWeight: 'bold',
@@ -163,20 +161,20 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onQuit }) => {
           <div style={{
             position:'absolute', inset:0,
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-            background:'rgba(10,10,10,0.85)',
+            background:'rgba(2,10,5,0.88)',
           }}>
-            <div style={{ color:'#ff4444', fontSize:22, fontWeight:700, letterSpacing:5 }}>GAME OVER</div>
-            <div style={{ color:'#007a1f', fontSize:12, marginTop:10 }}>
-              {'FINAL SCORE: '}<span style={{ color:'#00ff41' }}>{score}</span>
+            <div style={{ color:'#ff7a6b', fontSize:22, fontWeight:700, letterSpacing:5 }}>GAME OVER</div>
+            <div style={{ color:'#3f9a5a', fontSize:12, marginTop:10 }}>
+              {'FINAL SCORE: '}<span style={{ color:'#6cf58f' }}>{score}</span>
             </div>
-            <div className="blink" style={{ marginTop:20, color:'#00ff41', fontSize:11 }}>&gt; press R to restart</div>
+            <div className="blink" style={{ marginTop:20, color:'#6cf58f', fontSize:11 }}>&gt; press R to restart</div>
           </div>
         )}
       </div>
 
       {/* legend */}
-      <div style={{ color:'var(--green-dark)', fontSize:11, letterSpacing:1, marginTop:10 }}>
-        ★ <span style={{color: '#ffb000'}}>food</span> &nbsp;&nbsp;&nbsp; █▓ <span style={{color: '#00ff41'}}>snake</span> &nbsp;&nbsp;&nbsp; (speed increases every 5 points)
+      <div style={{ color:'#3f9a5a', fontSize:11, letterSpacing:1, marginTop:10 }}>
+        ★ <span style={{color: '#ffcf5c'}}>food</span> &nbsp;&nbsp;&nbsp; █▓ <span style={{color: '#6cf58f'}}>snake</span> &nbsp;&nbsp;&nbsp; (speed increases every 5 points)
       </div>
     </div>
   );
