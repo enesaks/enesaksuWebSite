@@ -76,7 +76,7 @@ module_exit(hello_cleanup);
     const onK = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key.toLowerCase() === 'q') {
         setHackMode(false);
-        setCmdOutput('<span style="color:#ffb000">hack mode exited. connection terminated.</span>');
+        setCmdOutput('<span style="color:var(--amber)">hack mode exited. connection terminated.</span>');
         setTimeout(() => inputRef.current?.focus(), 50);
         return;
       }
@@ -152,7 +152,7 @@ module_exit(hello_cleanup);
       about:   'about.txt&nbsp;&nbsp;experience.log',
       writings:'aws-notlarim.md&nbsp;&nbsp;git-notlarim.md&nbsp;&nbsp;linux-scripting.md&nbsp;&nbsp;docker-notlarim.md',
       projects:'AWS-IAM-S3-Ec2/&nbsp;&nbsp;Linux-Git-GitHub/&nbsp;&nbsp;dotNetFurniture/&nbsp;&nbsp;AuthorizationAPI/&nbsp;&nbsp;enesaksuWebSite/',
-      contact: 'medium.lnk&nbsp;&nbsp;linkedin.lnk&nbsp;&nbsp;gmail.lnk&nbsp;&nbsp;instagram.lnk',
+      contact: 'github.lnk&nbsp;&nbsp;medium.lnk&nbsp;&nbsp;linkedin.lnk&nbsp;&nbsp;gmail.lnk&nbsp;&nbsp;instagram.lnk',
     };
 
     /* snake */
@@ -179,9 +179,9 @@ module_exit(hello_cleanup);
     /* cd */
     if (cmd.startsWith('cd')) {
       const arg = cmd.slice(2).trim();
-      if (!arg || arg === '~' || arg === '..') { setActiveTab('about'); setCmdOutput('<span style="color:#00ff41">/home/enes/portfolio/about</span>'); }
-      else if (TAB_CMDS[arg]) { setActiveTab(TAB_CMDS[arg]); setCmdOutput(`<span style="color:#00ff41">/home/enes/portfolio/${TAB_CMDS[arg]}</span>`); }
-      else setCmdOutput(`<span style="color:#ff4444">cd: ${arg}: No such directory</span>`);
+      if (!arg || arg === '~' || arg === '..') { setActiveTab('about'); setCmdOutput('<span style="color:var(--green)">/home/enes/portfolio/about</span>'); }
+      else if (TAB_CMDS[arg]) { setActiveTab(TAB_CMDS[arg]); setCmdOutput(`<span style="color:var(--green)">/home/enes/portfolio/${TAB_CMDS[arg]}</span>`); }
+      else setCmdOutput(`<span style="color:var(--red)">cd: ${arg}: No such directory</span>`);
       return;
     }
 
@@ -195,9 +195,9 @@ module_exit(hello_cleanup);
       const url = LINKS[arg.toLowerCase()] || arg;
       if (url.startsWith('http://') || url.startsWith('https://')) {
         window.open(url, '_blank');
-        setCmdOutput(`<span style="color:#00ff41">→ opening ${url}</span>`);
+        setCmdOutput(`<span style="color:var(--green)">→ opening ${url}</span>`);
       } else {
-        setCmdOutput(`<span style="color:#ff4444">open: bilinmeyen hedef. Kullanım: open medium|github|linkedin|instagram veya tam URL</span>`);
+        setCmdOutput(`<span style="color:var(--red)">open: bilinmeyen hedef. Kullanım: open medium|github|linkedin|instagram veya tam URL</span>`);
       }
       return;
     }
@@ -206,28 +206,28 @@ module_exit(hello_cleanup);
     if (cmd === 'history') {
       const hist = histRef.current;
       setCmdOutput(hist.length === 0
-        ? '<span style="color:#007a1f">henüz komut girilmedi</span>'
+        ? '<span style="color:var(--muted)">henüz komut girilmedi</span>'
         : hist.map((c: string, i: number) =>
-            `<span style="color:#007a1f">${String(i+1).padStart(3)}</span>  <span style="color:#00ff41">${c}</span>`
+            `<span style="color:var(--muted)">${String(i+1).padStart(3)}</span>  <span style="color:var(--green)">${c}</span>`
           ).join('<br>')
       );
       return;
     }
 
     const OUTPUTS: Record<string,string> = {
-      help:    `<span style="color:#00ff41">Komutlar: about | writings | projects | contact | cd &lt;tab&gt; | cd .. | open &lt;hedef&gt; | ls | pwd | whoami | date | uname | history | neofetch | snake | clear</span>`,
-      whoami:  '<span style="color:#00ff41">enes aksu — junior devops engineer — istanbul, tr</span>',
-      date:    `<span style="color:#00ff41">${new Date().toLocaleString('tr-TR')}</span>`,
-      uname:   '<span style="color:#00ff41">Linux enesaks.com 6.8.0 #1 SMP x86_64 GNU/Linux</span>',
-      pwd:     `<span style="color:#00ff41">${PWD[activeTab]}</span>`,
-      ls:      `<span style="color:#00ff41">${LS[activeTab]}</span>`,
+      help:    `<span style="color:var(--green)">Komutlar: about | writings | projects | contact | cd &lt;tab&gt; | cd .. | open &lt;hedef&gt; | ls | pwd | whoami | date | uname | history | neofetch | snake | matrix | hack | clear</span>`,
+      whoami:  '<span style="color:var(--green)">enes aksu — junior devops engineer — istanbul, tr</span>',
+      date:    `<span style="color:var(--green)">${new Date().toLocaleString('tr-TR')}</span>`,
+      uname:   '<span style="color:var(--green)">Linux enesaks.com 6.8.0 #1 SMP x86_64 GNU/Linux</span>',
+      pwd:     `<span style="color:var(--green)">${PWD[activeTab]}</span>`,
+      ls:      `<span style="color:var(--green)">${LS[activeTab]}</span>`,
       neofetch: NEOFETCH_OUT,
     };
 
-    if (TAB_CMDS[cmd]) { setActiveTab(TAB_CMDS[cmd]); setCmdOutput(`<span style="color:#00ff41">${TAB_CMDS[cmd]} açıldı</span>`); }
+    if (TAB_CMDS[cmd]) { setActiveTab(TAB_CMDS[cmd]); setCmdOutput(`<span style="color:var(--green)">${TAB_CMDS[cmd]} açıldı</span>`); }
     else if (cmd === 'clear') setCmdOutput('');
     else if (OUTPUTS[cmd]) setCmdOutput(OUTPUTS[cmd]);
-    else setCmdOutput(`<span style="color:#ff4444">bash: ${cmd}: command not found — 'help' yazın</span>`);
+    else setCmdOutput(`<span style="color:var(--red)">bash: ${cmd}: command not found — 'help' yazın</span>`);
   };
 
   const openLink = (url: string) => window.open(url, '_blank');
@@ -235,16 +235,27 @@ module_exit(hello_cleanup);
   return (
     <div className="crt-wrapper">
       {!booted ? (
-        <BootScreen onBootComplete={() => setBooted(true)} />
+        <div className="window">
+          <div className="topbar">
+            <div className="dots">
+              <div className="dot" style={{ background:'#ff5f57' }} />
+              <div className="dot" style={{ background:'#febc2e' }} />
+              <div className="dot" style={{ background:'#28c840' }} />
+            </div>
+            <div className="topbar-title">enesaks.com — booting…</div>
+          </div>
+          <div className="body">
+            <BootScreen onBootComplete={() => setBooted(true)} />
+          </div>
+        </div>
       ) : (
         <>
-          <div className="scanline" />
 
           {/* Matrix Overlay */}
           {matrixOn && (
             <MatrixRain onQuit={() => {
               setMatrixOn(false);
-              setCmdOutput('<span style="color:#00ff41">matrix simulation ended.</span>');
+              setCmdOutput('<span style="color:var(--green)">matrix simulation ended.</span>');
               setTimeout(() => inputRef.current?.focus(), 50);
             }} />
           )}
@@ -260,19 +271,17 @@ module_exit(hello_cleanup);
             </div>
           )}
 
-          <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
+          <div className="window">
 
             {/* TOPBAR */}
             <div className="topbar">
               <div className="dots">
-                <div className="dot" style={{ background:'#ff4444' }} />
-                <div className="dot" style={{ background:'#ffb000' }} />
-                <div className="dot" style={{ background:'#00ff41' }} />
+                <div className="dot" style={{ background:'#ff5f57' }} />
+                <div className="dot" style={{ background:'#febc2e' }} />
+                <div className="dot" style={{ background:'#28c840' }} />
               </div>
-              <div style={{ flex:1, textAlign:'center', color:'var(--green-dim)', fontSize:11, letterSpacing:2 }}>
-                enesaks.com — bash — 80x24
-              </div>
-              <div style={{ color:'var(--green-dark)', fontSize:11 }}>{clock}</div>
+              <div className="topbar-title">enes@enesaks.com: ~/{activeTab}</div>
+              <div className="topbar-clock">{clock}</div>
             </div>
 
             {/* NAV */}
@@ -285,11 +294,13 @@ module_exit(hello_cleanup);
             </nav>
 
             {/* CONTENT */}
-            <div className="content">
+            <div className="body">
+            <div className="scanline" />
+            <div className="content" key={snakeOn ? 'snake' : activeTab}>
               {snakeOn ? (
                 <SnakeGame onQuit={() => {
                   setSnakeOn(false);
-                  setCmdOutput('<span style="color:#007a1f">snake kapatıldı — hoş geldin geri</span>');
+                  setCmdOutput('<span style="color:var(--muted)">snake kapatıldı — hoş geldin geri</span>');
                   setTimeout(() => inputRef.current?.focus(), 50);
                 }} />
               ) : (
@@ -310,12 +321,15 @@ module_exit(hello_cleanup);
                 ref={inputRef}
                 className="cmd-input"
                 placeholder="komut girin... (help | Tab: tamamla | ↑↓: geçmiş)"
+                aria-label="Terminal komutu"
                 value={cmdValue}
                 onChange={e => { setCmdValue(e.target.value); if (historyIdx !== -1) setHistoryIdx(-1); }}
                 onKeyDown={handleKeyDown}
                 autoComplete="off"
+                autoCapitalize="off"
                 spellCheck={false}
               />
+            </div>
             </div>
 
           </div>

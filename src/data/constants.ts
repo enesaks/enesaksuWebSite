@@ -14,33 +14,35 @@ export const BOOT = [
   { t: 530,  cls:'boot-ok',   text:'[  OK  ] Starting ollama.service ... qwen3:14b loaded' },
   { t: 640,  cls:'boot-ok',   text:'[  OK  ] Starting aws.credentials' },
   { t: 750,  cls:'boot-warn', text:'[ WARN ] wsl2.memory: 16GB allocated (RTX 5060 Ti)' },
-  { t: 860,  cls:'boot-ok',   text:'[  OK  ] Fetching medium.com/@enesaks ... 9 articles' },
-  { t: 970,  cls:'boot-ok',   text:'[  OK  ] Fetching github.com/enesaks ... 34 repos' },
+  { t: 860,  cls:'boot-ok',   text:'[  OK  ] Fetching medium.com/@enesaks ... done' },
+  { t: 970,  cls:'boot-ok',   text:'[  OK  ] Fetching github.com/enesaks ... done' },
   { t: 1080, cls:'boot-ok',   text:'[  OK  ] Starting portfolio.service on :3000' },
   { t: 1180, cls:'',           text:'' },
   { t: 1260, cls:'boot-ok',   text:'System ready. Welcome, Enes.' },
 ];
 
 export const NEOFETCH_OUT = [
-  `<div style="display:flex;gap:2.5rem;align-items:flex-start">`,
-  `<pre style="color:#00ff41;font-size:10px;line-height:1.2;margin:0;font-family:'JetBrains Mono',monospace">`,
-  `  ███████╗███╗   ██╗███████╗███████╗`,
-  `  ██╔════╝████╗  ██║██╔════╝██╔════╝`,
-  `  █████╗  ██╔██╗ ██║█████╗  ███████╗`,
-  `  ██╔══╝  ██║╚██╗██║██╔══╝  ╚════██║`,
-  `  ███████╗██║ ╚████║███████╗███████║`,
-  `  ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝`,
-  `</pre><div style="line-height:1.8;font-size:12px">`,
-  `<span style="color:#00d4ff">enes</span><span style="color:#007a1f">@</span><span style="color:#00d4ff">enesaks.com</span><br>`,
-  `<span style="color:#007a1f">───────────────────────────</span><br>`,
-  `<span style="color:#00d4ff">OS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ENESAKSU OS v2.5.0<br>`,
-  `<span style="color:#00d4ff">Host&nbsp;&nbsp;&nbsp;</span> enesaks.com (Vercel)<br>`,
-  `<span style="color:#00d4ff">Kernel&nbsp;</span> 6.8.0-enesaksu #1 SMP<br>`,
-  `<span style="color:#00d4ff">Shell&nbsp;&nbsp;</span> bash 5.2.0<br>`,
-  `<span style="color:#00d4ff">DE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> terminal-portfolio<br>`,
-  `<span style="color:#00d4ff">GPU&nbsp;&nbsp;&nbsp;&nbsp;</span> RTX 5060 Ti 16GB<br>`,
-  `<span style="color:#00d4ff">Memory&nbsp;</span> 16GB / 32GB<br>`,
-  `<span style="color:#00d4ff">Uptime&nbsp;</span> since boot`,
+  `<div style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap;padding:6px 0">`,
+  `<pre style="color:var(--green);font-size:10px;line-height:1.05;margin:0;font-family:'JetBrains Mono',monospace">`,
+  [
+    `███████╗███╗   ██╗███████╗███████╗`,
+    `██╔════╝████╗  ██║██╔════╝██╔════╝`,
+    `█████╗  ██╔██╗ ██║█████╗  ███████╗`,
+    `██╔══╝  ██║╚██╗██║██╔══╝  ╚════██║`,
+    `███████╗██║ ╚████║███████╗███████║`,
+    `╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝`,
+  ].join('\n'),
+  `</pre><div style="line-height:1.8;font-size:13px">`,
+  `<span style="color:var(--cyan)">enes</span><span style="color:var(--muted)">@</span><span style="color:var(--cyan)">enesaks.com</span><br>`,
+  `<span style="color:var(--muted)">───────────────────────────</span><br>`,
+  `<span style="color:var(--cyan)">OS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> ENESAKSU OS v2.5.0<br>`,
+  `<span style="color:var(--cyan)">Host&nbsp;&nbsp;&nbsp;</span> enesaks.com (Vercel)<br>`,
+  `<span style="color:var(--cyan)">Kernel&nbsp;</span> 6.8.0-enesaksu #1 SMP<br>`,
+  `<span style="color:var(--cyan)">Shell&nbsp;&nbsp;</span> bash 5.2.0<br>`,
+  `<span style="color:var(--cyan)">DE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> terminal-portfolio<br>`,
+  `<span style="color:var(--cyan)">GPU&nbsp;&nbsp;&nbsp;&nbsp;</span> RTX 5060 Ti 16GB<br>`,
+  `<span style="color:var(--cyan)">Memory&nbsp;</span> 16GB / 32GB<br>`,
+  `<span style="color:var(--cyan)">Uptime&nbsp;</span> since boot`,
   `</div></div>`,
 ].join('');
 
@@ -65,9 +67,26 @@ export const PROJECTS = [
   { title:'enesaksuWebSite', desc:'Bu terminal portfolio sitesi. React + TypeScript + Vite ile geliştirildi. Vercel üzerinde deploy edildi.', tags:['REACT','TYPESCRIPT','VITE','VERCEL'], url:'https://github.com/enesaks/enesaksuWebSite', status:'wip' },
 ];
 
-export const EXPERIENCE = [
-  { period:'Ara 2025\nDevam ediyor · 5 ay', company:'Kartaca',          role:'System Monitoring',         badge:'CURRENT', badgeColor:'#00ff41' },
-  { period:'Ağu 2025\nEyl 2025 · 2 ay',     company:'Halkbank',         role:'Stajyer',                    badge:'INTERN',  badgeColor:'#ffb000' },
-  { period:'Eyl 2024\nEki 2024 · 2 ay',     company:'Bilsoft Yazılım',  role:'.NET Developer Intern',      badge:'INTERN',  badgeColor:'#ffb000' },
-  { period:'Şub 2024\nAğu 2024 · 7 ay',     company:'Acunmedya Akademi',role:'Nish Trainings: C# & ASP.NET',badge:null,    badgeColor:'' },
+export const FOCUS = ['Linux', 'Docker', 'CI/CD', 'AWS', 'Cloud'];
+
+// start / end: 'YYYY-MM'. end: null => devam ediyor (süre her ziyarette güncel hesaplanır).
+export const EXPERIENCE: { start:string; end:string|null; company:string; role:string; badge:string|null; badgeColor:string }[] = [
+  { start:'2025-12', end:null,      company:'Kartaca',           role:'System Monitoring',            badge:'CURRENT', badgeColor:'var(--green)' },
+  { start:'2025-08', end:'2025-09', company:'Halkbank',          role:'Stajyer',                      badge:'INTERN',  badgeColor:'var(--amber)' },
+  { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım',   role:'.NET Developer Intern',        badge:'INTERN',  badgeColor:'var(--amber)' },
+  { start:'2024-02', end:'2024-08', company:'Acunmedya Akademi', role:'Nish Trainings: C# & ASP.NET', badge:null,      badgeColor:'' },
 ];
+
+const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+
+/** '2025-12', null -> 'Ara 2025 — Devam ediyor · 1 yıl' (başlangıç ve bitiş ayı dahil sayılır) */
+export const formatPeriod = (start: string, end: string | null, now: Date = new Date()): string => {
+  const [sy, sm] = start.split('-').map(Number);
+  const [ey, em] = end ? end.split('-').map(Number) : [now.getFullYear(), now.getMonth() + 1];
+  const total = Math.max(1, (ey - sy) * 12 + (em - sm) + 1);
+  const years = Math.floor(total / 12);
+  const months = total % 12;
+  const duration = [years ? `${years} yıl` : '', months ? `${months} ay` : ''].filter(Boolean).join(' ');
+  const endLabel = end ? `${MONTHS_TR[em - 1]} ${ey}` : 'Devam ediyor';
+  return `${MONTHS_TR[sm - 1]} ${sy} — ${endLabel} · ${duration}`;
+};

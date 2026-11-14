@@ -7,6 +7,8 @@ interface Project {
   tags: string[];
   url: string;
   status: string;
+  stars?: number;
+  updated?: string;
 }
 
 const ProjectsTab: React.FC = () => {
@@ -27,7 +29,11 @@ const ProjectsTab: React.FC = () => {
             desc: repo.description || 'Açıklama bulunmuyor.',
             tags: repo.topics && repo.topics.length > 0 ? repo.topics.map((t: string) => t.toUpperCase()) : [repo.language?.toUpperCase() || 'CODE'],
             url: repo.html_url,
-            status: repo.archived ? 'archived' : 'live'
+            status: repo.archived ? 'archived' : 'live',
+            stars: repo.stargazers_count || 0,
+            updated: repo.pushed_at
+              ? new Date(repo.pushed_at).toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })
+              : undefined
           }));
           setProjects(parsedProjects);
         } else {
@@ -49,22 +55,30 @@ const ProjectsTab: React.FC = () => {
     <div>
       <div className="prompt-line">enes@portfolio:~$ <span className="prompt-cmd">gh repo list enesaks --sort updated</span></div>
       
-      {loading && <div style={{ color: 'var(--amber)', marginBottom: '10px' }}>[ Fetching from GitHub API... ]</div>}
-      
-      {error && <div style={{ color: 'var(--red)', marginBottom: '10px' }}>[ WARN ] API failed. Using fallback data.</div>}
+      {loading && <div className="status-line">[ Fetching from GitHub API... ]</div>}
 
-      {!loading && projects.map((p, i) => (
-        <div key={i} className="project-card">
-          <span className="proj-corner-l">[</span>
-          <span className="proj-corner-r">]</span>
-          <span className="proj-status" style={{ color:p.status==='live'?'var(--green)':'var(--amber)' }}>
-            {p.status==='live'?'● PUBLIC':(p.status==='archived' ? 'ARCHIVED' : '◉ WIP')}
-          </span>
-          <div className="proj-title"><a href={p.url} target="_blank" rel="noreferrer">{p.title}</a></div>
-          <div className="proj-desc">{p.desc}</div>
-          <div className="proj-tags">{p.tags.map(t => <span key={t} className="tag">{t}</span>)}</div>
-        </div>
-      ))}
+      {error && <div className="status-line err">[ WARN ] API failed. Using fallback data.</div>}
+
+      <div className="card-grid">
+        {!loading && projects.map((p, i) => (
+          <div key={i} className="project-card">
+            <div className="proj-head">
+              <div className="proj-title"><a href={p.url} target="_blank" rel="noreferrer">{p.title}</a></div>
+              <span className="proj-status" style={{ color:p.status==='live'?'var(--green)':'var(--amber)' }}>
+                {p.status==='live'?'● PUBLIC':(p.status==='archived' ? 'ARCHIVED' : '◉ WIP')}
+              </span>
+            </div>
+            <div className="proj-desc">{p.desc}</div>
+            <div className="proj-tags">{p.tags.map(t => <span key={t} className="tag">{t}</span>)}</div>
+            {(p.stars || p.updated) && (
+              <div className="proj-meta">
+                {!!p.stars && <span>★ {p.stars}</span>}
+                {p.updated && <span>güncellendi: {p.updated}</span>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

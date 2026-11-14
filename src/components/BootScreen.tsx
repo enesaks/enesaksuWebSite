@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BOOT } from '../data/constants';
 
 interface BootScreenProps {
@@ -6,26 +6,33 @@ interface BootScreenProps {
 }
 
 const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
-  const [bootLines, setBootLines] = useState<{ text: string; cls: string }[]>([]);
+  const [visible, setVisible] = useState(0);
+
+  // Keep the latest callback without re-running the boot sequence when the parent re-renders.
+  const doneRef = useRef(onBootComplete);
+  doneRef.current = onBootComplete;
 
   useEffect(() => {
-    let maxT = 0;
-    BOOT.forEach(line => {
-      maxT = Math.max(maxT, line.t);
-      setTimeout(() => {
-        setBootLines(prev => [...prev, { text: line.text || ' ', cls: line.cls }]);
-      }, line.t);
-    });
-    setTimeout(() => onBootComplete(), maxT + 800);
-  }, [onBootComplete]);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { doneRef.current(); return; }
+
+    const maxT = Math.max(...BOOT.map(l => l.t));
+    const timers = BOOT.map((line, i) => setTimeout(() => setVisible(i + 1), line.t));
+    timers.push(setTimeout(() => doneRef.current(), maxT + 700));
+
+    const skip = () => doneRef.current();
+    window.addEventListener('keydown', skip);
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener('keydown', skip);
+    };
+  }, []);
 
   return (
-    <>
-      <div className="scanline" />
-      <div className="boot-screen">
-        {bootLines.map((l, i) => <div key={i} className={l.cls}>{l.text}</div>)}
-      </div>
-    </>
+    <div className="boot-screen" onClick={() => doneRef.current()}>
+      {BOOT.slice(0, visible).map((l, i) => <div key={i} className={l.cls}>{l.text}</div>)}
+      <div className="boot-skip">geçmek için tıkla ya da bir tuşa bas</div>
+    </div>
   );
 };
 

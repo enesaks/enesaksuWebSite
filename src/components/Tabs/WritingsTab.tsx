@@ -63,12 +63,19 @@ const WritingsTab: React.FC<WritingsTabProps> = ({ openLink }) => {
     <div>
       <div className="prompt-line">enes@portfolio:~$ <span className="prompt-cmd">curl -s https://medium.com/feed/@enesaks | jq .items</span></div>
       
-      {loading && <div style={{ color: 'var(--amber)', marginBottom: '10px' }}>[ Fetching from Medium API... ]</div>}
-      
-      {error && <div style={{ color: 'var(--red)', marginBottom: '10px' }}>[ WARN ] API failed. Using fallback data.</div>}
+      {loading && <div className="status-line">[ Fetching from Medium API... ]</div>}
+
+      {error && <div className="status-line err">[ WARN ] API failed. Using fallback data.</div>}
 
       {!loading && articles.map((a, i) => (
-        <div key={i} className="article-card" onClick={() => openLink(a.url)}>
+        <div
+          key={i}
+          className="article-card"
+          role="link"
+          tabIndex={0}
+          onClick={() => openLink(a.url)}
+          onKeyDown={e => { if (e.key === 'Enter') openLink(a.url); }}
+        >
           <div className="article-date">{a.date}</div>
           <div className="article-title">{a.title}</div>
           <div className="article-desc">{a.desc}</div>
