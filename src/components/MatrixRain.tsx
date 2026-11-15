@@ -16,6 +16,7 @@ const MatrixRain: React.FC<MatrixRainProps> = ({ onQuit }) => {
     const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレゲゼデベペオォコソトノホモヨョロゴゾドボポヴッン';
     const alphabet = katakana + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + '0123456789';
     const fontSize = 16;
+    const rain = getComputedStyle(canvas).getPropertyValue('--fg').trim() || '#5dff8a';
     let drops: number[] = [];
 
     // The rain fills the monitor's tube, not the browser window.
@@ -31,7 +32,7 @@ const MatrixRain: React.FC<MatrixRainProps> = ({ onQuit }) => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = '#5dff8a';
+      ctx.fillStyle = rain;
       ctx.font = fontSize + 'px monospace';
 
       for (let i = 0; i < drops.length; i++) {

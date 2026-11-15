@@ -90,6 +90,12 @@ export const powerOn = () => {
   startHum();
 };
 
+/** Low thunk of the degauss coil. */
+export const degauss = () => {
+  tone(60, 0.7, 'sine', 0.25, 28);
+  tone(120, 0.5, 'triangle', 0.03, 50);
+};
+
 export const powerOff = () => {
   tone(600, 0.4, 'sawtooth', 0.025, 60);
   stopHum();

@@ -264,6 +264,10 @@ const HELP: [string, string][] = [
   ['snake, typer', 'oyunlar'],
   ['matrix, hack, screensaver', 'eğlence'],
   ['fortune, cowsay <söz>', 'günün sözü'],
+  ['top, ping <adres>', 'canlı süreç listesi, ağ testi'],
+  ['docker ps|images|run, kubectl get pods', 'sahte konteynerler ve podlar'],
+  ['theme green|amber|white|blue', 'fosfor rengini değiştir'],
+  ['degauss', 'tüpü manyetik olarak sıfırla'],
   ['sound on|off', 'tüp ve klavye sesleri'],
   ['crt on|off', 'tüp monitör efektlerini aç / kapat'],
   ['clear', 'ekranı temizle (Ctrl+L)'],
@@ -292,6 +296,9 @@ export const Secrets: React.FC = () => (
       <span className="c-green"><Cmd run="fortune">fortune</Cmd> · <Cmd run="cowsay moo">cowsay</Cmd></span><span>günün sözü, inekli</span>
       <span className="c-green"><Cmd run="screensaver">screensaver</Cmd></span><span>ekran koruyucu (2 dk boşta kalınca kendiliğinden)</span>
       <span className="c-green"><Cmd run="sound on">sound on</Cmd></span><span>tüp vınlaması ve tuş sesleri</span>
+      <span className="c-green"><Cmd run="theme amber">theme amber</Cmd></span><span>amber, beyaz ya da mavi fosfor</span>
+      <span className="c-green">↑↑↓↓←→←→BA</span><span>bilenler bilir</span>
+      <span className="c-green">rm -rf /</span><span>cesaretin varsa</span>
     </div>
     <div className="c-dim">ipucu: kasadaki iki düğme parlaklık ve kontrastı ayarlar, güç düğmesi de çalışır.</div>
     <div className="gap-top">API_KEY=<span className="c-red">nice-try-;)</span></div>

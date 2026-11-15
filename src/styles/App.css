@@ -26,7 +26,7 @@
     inset 4px 0 8px rgba(255,255,255,.18),
     inset -4px 0 8px rgba(0,0,0,.16),
     0 40px 80px -20px rgba(0,0,0,.95),
-    0 0 140px -30px rgba(90,255,140,.16);
+    0 0 140px -30px rgba(var(--glow-rgb),.16);
 }
 
 /* Dark recess the tube sits in */
@@ -48,14 +48,14 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: 22px / 30px;
-  background: radial-gradient(ellipse at center, #07230f 0%, #031308 55%, #010803 100%);
+  background: radial-gradient(ellipse at center, var(--tube-1) 0%, var(--screen) 55%, var(--tube-3) 100%);
   color: var(--fg);
   font-family: 'VT323', 'JetBrains Mono', ui-monospace, Consolas, monospace;
   font-size: clamp(17px, 0.9vw + 11px, 23px);
   line-height: 1.16;
   text-shadow:
     0 0 1px currentColor,
-    0 0 9px rgba(90, 255, 140, .42),
+    0 0 9px rgba(var(--glow-rgb), .42),
     .5px 0 0 rgba(255, 70, 70, .18),
     -.5px 0 0 rgba(70, 130, 255, .18);
   transform-origin: center;
@@ -85,12 +85,12 @@
     repeating-linear-gradient(90deg, rgba(255,0,0,.035) 0 1px, rgba(0,255,0,.02) 1px 2px, rgba(0,0,255,.035) 2px 3px);
 }
 .fx-roll {
-  background: linear-gradient(to bottom, transparent, rgba(160,255,190,.055) 45%, rgba(160,255,190,.09) 50%, transparent) no-repeat;
+  background: linear-gradient(to bottom, transparent, rgba(var(--glow-rgb),.055) 45%, rgba(var(--glow-rgb),.09) 50%, transparent) no-repeat;
   background-size: 100% 28%;
   animation: roll 7.5s linear infinite;
 }
 @keyframes roll { from { background-position: 0 -40%; } to { background-position: 0 140%; } }
-.fx-flicker { background: rgba(140, 255, 175, .05); animation: flicker .13s steps(2) infinite; }
+.fx-flicker { background: rgba(var(--glow-rgb), .05); animation: flicker .13s steps(2) infinite; }
 @keyframes flicker { 0% { opacity: .25; } 50% { opacity: .7; } 100% { opacity: .4; } }
 .fx-glass {
   background:
@@ -143,7 +143,7 @@
   background: var(--fg);
   color: var(--screen);
   text-shadow: none;
-  box-shadow: 0 0 9px rgba(108, 245, 143, .75);
+  box-shadow: 0 0 9px rgba(var(--glow-rgb), .75);
   animation: blink 1.06s steps(1) infinite;
 }
 .cursor.idle { background: transparent; color: inherit; box-shadow: inset 0 0 0 1px var(--fg); animation: none; }
@@ -192,7 +192,7 @@
   white-space: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
-  box-shadow: 0 0 18px rgba(90, 255, 140, .35);
+  box-shadow: 0 0 18px rgba(var(--glow-rgb), .35);
 }
 .tmux::-webkit-scrollbar { display: none; }
 .tmux-windows { display: flex; gap: 1ch; }
@@ -201,7 +201,7 @@
 .tmux-right { margin-left: auto; padding-left: 2ch; }
 
 /* Full-screen programs (snake, matrix, hack) take over the tube like an alternate screen */
-.program { position: absolute; inset: 0; z-index: 3; background: #010803; overflow: hidden; }
+.program { position: absolute; inset: 0; z-index: 3; background: var(--tube-3); overflow: hidden; }
 .program-exit {
   position: absolute; top: 14px; right: 20px;
   background: rgba(0,0,0,.6); border: 1px solid var(--fg); color: var(--fg);
@@ -220,18 +220,63 @@
 .cow { white-space: pre; overflow-x: auto; scrollbar-width: none; }
 
 /* Screen saver */
-.saver { position: relative; height: 100%; overflow: hidden; background: #010803; }
+.saver { position: relative; height: 100%; overflow: hidden; background: var(--tube-3); }
 .saver-logo { position: absolute; left: 0; top: 0; margin: 0; will-change: transform; }
 .saver-hint { position: absolute; left: 0; right: 0; bottom: .6em; text-align: center; opacity: .7; }
 
 /* Typer */
 .typer { position: relative; height: 100%; display: flex; flex-direction: column; gap: .5em; padding: clamp(12px, 2vw, 24px) clamp(16px, 2.8vw, 36px) .5em; }
-.typer-field { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--dim); box-shadow: 0 0 14px rgba(90, 255, 140, .28), inset 0 0 22px rgba(90, 255, 140, .08); }
+.typer-field { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--dim); box-shadow: 0 0 14px rgba(var(--glow-rgb), .28), inset 0 0 22px rgba(var(--glow-rgb), .08); }
 .typer-word { position: absolute; top: 0; white-space: nowrap; will-change: transform; }
 .typer-word.locked { color: var(--amber); }
 .typer-hit { background: var(--amber); color: var(--screen); text-shadow: none; }
 .typer-line { position: absolute; left: 0; right: 0; bottom: 22px; border-top: 1px dashed var(--red); opacity: .7; }
 .typer-input { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; pointer-events: none; }
+
+/* Phosphor colour themes (green is the default set in index.html) */
+.theme-amber {
+  --fg: #ffb547; --green: #ffa726; --bright: #ffe7b8; --dim: #a8742c; --screen: #140b02;
+  --cyan: #ffd08a; --blue: #ffc266; --amber: #fff0c8; --red: #ff8a5c;
+  --glow-rgb: 255, 170, 60; --tube-1: #2a1803; --tube-3: #070401;
+}
+.theme-white {
+  --fg: #e6eef0; --green: #cfd8dc; --bright: #ffffff; --dim: #7d8a8f; --screen: #0b0d0e;
+  --cyan: #bfe9ff; --blue: #c9d6ff; --amber: #fff3c4; --red: #ffb3a8;
+  --glow-rgb: 210, 230, 240; --tube-1: #1b1f21; --tube-3: #040505;
+}
+.theme-blue {
+  --fg: #7fc8ff; --green: #5ab4ff; --bright: #dff1ff; --dim: #3b6f99; --screen: #020c18;
+  --cyan: #9fe3ff; --blue: #b4d4ff; --amber: #ffd479; --red: #ff8a80;
+  --glow-rgb: 90, 170, 255; --tube-1: #06203a; --tube-3: #01060d;
+}
+
+/* Tube effects: glitch (rm -rf /) and degauss wobble */
+.tube-glitch .viewport, .tube-glitch .tmux { animation: glitch .9s steps(9) both; }
+@keyframes glitch {
+  0%   { transform: none; filter: none; }
+  15%  { transform: translate(-6px, 2px) skewX(-6deg); filter: hue-rotate(80deg) saturate(3); }
+  30%  { transform: translate(5px, -3px) skewX(5deg); filter: invert(1); }
+  45%  { transform: translate(-3px, 0) scaleY(.96); filter: hue-rotate(-90deg) brightness(1.8); }
+  60%  { transform: translate(4px, 3px) skewX(-3deg); filter: contrast(3); }
+  80%  { transform: translate(-2px, -1px); filter: brightness(.4); }
+  100% { transform: none; filter: none; }
+}
+.tube-degauss .viewport, .tube-degauss .tmux { animation: degaussWobble 1.3s ease-out both; }
+@keyframes degaussWobble {
+  0%   { transform: none; filter: none; }
+  8%   { transform: scale(1.03) skewX(3deg); filter: hue-rotate(140deg) saturate(4) brightness(1.4); }
+  22%  { transform: scale(.985) skewX(-2deg); filter: hue-rotate(-120deg) saturate(3); }
+  38%  { transform: scale(1.015) skewX(1.4deg); filter: hue-rotate(90deg) saturate(2.4); }
+  55%  { transform: scale(.995) skewX(-.8deg); filter: hue-rotate(-50deg) saturate(1.8); }
+  75%  { transform: scale(1.004); filter: hue-rotate(20deg); }
+  100% { transform: none; filter: none; }
+}
+
+/* top */
+.top { position: relative; height: 100%; overflow: hidden; padding: clamp(14px, 2.4vw, 30px) clamp(16px, 2.8vw, 36px); white-space: pre; }
+.top-head { margin-top: .6em; background: var(--fg); color: var(--screen); text-shadow: none; }
+.wide { white-space: pre; overflow-x: auto; scrollbar-width: none; }
+.wide::-webkit-scrollbar { display: none; }
 
 /* Snake */
 .snake { height: 100%; display: flex; flex-direction: column; gap: .5em; padding: clamp(12px, 2vw, 24px) clamp(16px, 2.8vw, 36px) .5em; }
@@ -239,7 +284,7 @@
 .snake-actions { margin-left: auto; display: flex; gap: 2ch; }
 .cmd-link.c-red { color: var(--red); }
 .snake-board { flex: 1; min-height: 0; display: grid; place-items: center; touch-action: none; }
-.snake-frame { position: relative; line-height: 0; border: 2px solid var(--dim); box-shadow: 0 0 14px rgba(90, 255, 140, .28), inset 0 0 22px rgba(90, 255, 140, .08); }
+.snake-frame { position: relative; line-height: 0; border: 2px solid var(--dim); box-shadow: 0 0 14px rgba(var(--glow-rgb), .28), inset 0 0 22px rgba(var(--glow-rgb), .08); }
 .snake-frame canvas { display: block; }
 .snake-overlay {
   position: absolute; inset: 0; line-height: 1.3;
@@ -317,6 +362,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tube, .fx-roll, .fx-flicker, .cursor { animation: none !important; }
+  .tube, .fx-roll, .fx-flicker, .cursor, .tube-glitch .viewport, .tube-glitch .tmux, .tube-degauss .viewport, .tube-degauss .tmux { animation: none !important; }
   .fx-flicker, .fx-roll { display: none; }
 }

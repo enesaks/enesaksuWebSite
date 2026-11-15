@@ -7,26 +7,30 @@ import HackMode from './components/HackMode';
 import TyperGame from './components/TyperGame';
 import ScreenSaver from './components/ScreenSaver';
 import Knob from './components/Knob';
-import { click, beep, powerOn, powerOff, setSound, soundEnabled } from './terminal/sound';
+import TopView from './components/TopView';
+import { Step, DockerPs, DockerImages, dockerRun, KubectlPods, ping, rmRoot, THEMES } from './terminal/devops';
+import { click, beep, powerOn, powerOff, degauss, setSound, soundEnabled } from './terminal/sound';
 import { fortune, cowsay } from './terminal/fun';
 import { BOOT } from './data/constants';
 import { loadRemote } from './terminal/remote';
 import { cwdLabel, cwdAbs, resolvePath, completePath, Kind } from './terminal/fs';
 import {
-  RunContext, About, Experience, Skills, Certificates, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
+  RunContext, Cmd, About, Experience, Skills, Certificates, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
 } from './terminal/outputs';
 
 const COMMANDS = [
-  'about', 'cat', 'cd', 'certs', 'clear', 'contact', 'cowsay', 'crt', 'date', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
-  'history', 'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'screensaver', 'skills', 'snake', 'sound', 'sudo', 'tree',
+  'about', 'cat', 'cd', 'certs', 'clear', 'contact', 'cowsay', 'crt', 'date', 'degauss', 'docker', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
+  'history', 'hostname', 'kubectl', 'ls', 'matrix', 'neofetch', 'open', 'ping', 'projects', 'pwd', 'screensaver', 'skills', 'snake', 'sound', 'sudo', 'theme', 'top', 'tree',
   'typer', 'uname', 'uptime', 'whoami', 'writings',
 ];
 const WINDOWS = ['about', 'writings', 'projects', 'contact', 'help'];
 const HISTORY_KEY = 'enesaks.history';
 const PICTURE_KEY = 'enesaks.picture';
 const IDLE_MS = 120000;
+const THEME_KEY = 'enesaks.theme';
+const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
-type Program = null | 'snake' | 'matrix' | 'hack' | 'typer' | 'saver';
+type Program = null | 'snake' | 'matrix' | 'hack' | 'typer' | 'saver' | 'top';
 interface Line { id: number; node: React.ReactNode }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -42,6 +46,8 @@ const loadPicture = (): { bri: number; con: number } => {
     return { bri: ok(v.bri) ? v.bri : 0.5, con: ok(v.con) ? v.con : 0.5 };
   } catch { return { bri: 0.5, con: 0.5 }; }
 };
+const loadTheme = () => { try { const t = localStorage.getItem(THEME_KEY) || 'green'; return THEMES[t] ? t : 'green'; } catch { return 'green'; } };
+const saveTheme = (t: string) => { try { localStorage.setItem(THEME_KEY, t); } catch { /* storage unavailable */ } };
 const saveHistory = (h: string[]) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(-100))); } catch { /* storage unavailable */ } };
 
 const Prompt: React.FC<{ cwd: string }> = ({ cwd }) => (
@@ -74,6 +80,9 @@ const App: React.FC = () => {
   const [power, setPower] = useState(true);
   const [active, setActive] = useState('about');
   const [picture, setPicture] = useState(loadPicture);
+  const [theme, setThemeState] = useState(loadTheme);
+  const [job, setJob] = useState(false);          // a streamed command (ping, docker run…) owns the terminal
+  const [fx, setFx] = useState<'' | 'glitch' | 'degauss'>('');
 
   const cwdRef = useRef('');
   const histRef = useRef<string[]>(loadHistory());
@@ -86,6 +95,9 @@ const App: React.FC = () => {
   const startedAt = useRef(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const jobRef = useRef(false);
+  const jobTimers = useRef<number[]>([]);
+  const fxTimer = useRef<number>(0);
 
   const print = useCallback((...nodes: React.ReactNode[]) => {
     const fresh = nodes.map(node => ({ id: ++idRef.current, node }));
@@ -94,6 +106,40 @@ const App: React.FC = () => {
   }, []);
 
   const focusInput = useCallback(() => setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 30), []);
+
+  /* Picture effects on the tube: a short glitch, or the colour wobble of a degauss */
+  const flash = useCallback((kind: 'glitch' | 'degauss') => {
+    clearTimeout(fxTimer.current);
+    setFx(kind);
+    if (kind === 'degauss') degauss();
+    fxTimer.current = window.setTimeout(() => setFx(''), kind === 'glitch' ? 900 : 1300);
+  }, []);
+
+  const setTheme = useCallback((t: string) => { setThemeState(t); saveTheme(t); }, []);
+
+  const endJob = useCallback(() => {
+    jobTimers.current.forEach(clearTimeout);
+    jobTimers.current = [];
+    jobRef.current = false;
+    setJob(false);
+    focusInput();
+  }, [focusInput]);
+
+  /* Prints a command's output line by line over time, like a real long-running process (Ctrl+C stops it). */
+  const runJob = useCallback((echo: React.ReactNode, steps: Step[]) => {
+    print(echo);
+    jobRef.current = true;
+    setJob(true);
+    let at = 0;
+    jobTimers.current = steps.map((s, i) => {
+      at += s.delay;
+      return window.setTimeout(() => {
+        print(s.node);
+        if (s.effect) flash(s.effect);
+        if (i === steps.length - 1) endJob();
+      }, at);
+    });
+  }, [print, flash, endJob]);
 
   /* ───────── command interpreter ───────── */
   const execute = useCallback((raw: string) => {
@@ -197,11 +243,45 @@ const App: React.FC = () => {
         return out(`crt efektleri: ${arg}`);
       }
 
+      case 'theme': {
+        const arg = (args[0] || '').toLowerCase();
+        if (!THEMES[arg]) {
+          return out(
+            <div>
+              <div>kullanım: theme &lt;ad&gt;</div>
+              {Object.entries(THEMES).map(([k, label]) => (
+                <div key={k} className="indent">
+                  <Cmd run={`theme ${k}`}>{k}</Cmd>{k === theme ? <span className="c-amber"> *</span> : ''} <span className="c-dim">— {label}</span>
+                </div>
+              ))}
+            </div>,
+          );
+        }
+        setTheme(arg);
+        flash('degauss');
+        return out(`tema: ${arg} — ${THEMES[arg]}`);
+      }
+      case 'degauss': flash('degauss'); return out('*BZZZT* degauss tamam, tüp manyetik olarak sıfırlandı.');
+      case 'top': case 'htop': return launch('top');
+      case 'ping': return runJob(echo, ping(args.find(a => !a.startsWith('-')) || 'enesaks.com'));
+      case 'docker': {
+        const sub = (args[0] || '').toLowerCase();
+        if (sub === 'ps') return out(<DockerPs />);
+        if (sub === 'images') return out(<DockerImages />);
+        if (sub === 'run') return runJob(echo, dockerRun(args.slice(1).find(a => !a.startsWith('-')) || 'hello-world'));
+        return out('kullanım: docker ps | docker images | docker run <imaj>');
+      }
+      case 'kubectl': case 'k': {
+        if ((args[0] || '').toLowerCase() === 'get' && /^(po|pod|pods)$/i.test(args[1] || '')) return out(<KubectlPods />);
+        return out('kullanım: kubectl get pods');
+      }
+
       case 'snake': case './snake.sh': case 'snake.sh': return launch('snake');
       case 'matrix': case 'cmatrix': return launch('matrix');
       case 'hack': return launch('hack');
 
       case 'sudo': case 'please': {
+        if (args[0] === 'rm' && args.includes('/')) return runJob(echo, rmRoot());
         const r = args[0] === 'cat' && args[1] ? resolvePath(here, args[1]) : null;
         if (r && r.ok && r.entry?.name === '.secrets') return out(<Secrets />);
         return out('enes is not in the sudoers file.  This incident will be reported.');
@@ -218,18 +298,21 @@ const App: React.FC = () => {
         setSound(arg === 'on');
         return out(`ses: ${arg}`);
       }
-      case 'rm': case 'mv': case 'touch': case 'mkdir': case 'cp': case 'nano': case 'vim': case 'vi':
+      case 'rm':
+        if (args.some(a => /^-\w*r/i.test(a)) && args.includes('/')) return runJob(echo, rmRoot());
+        return out(`rm: cannot remove '${args[args.length - 1] || '.'}': Read-only file system`);
+      case 'mv': case 'touch': case 'mkdir': case 'cp': case 'nano': case 'vim': case 'vi':
         return out(`${cmd}: cannot modify '${args[args.length - 1] || '.'}': Read-only file system`);
       case 'exit': case 'logout': return out(<span>logout<br /><span className="c-dim">(bu oturum kapanmaz — çıkmak için sekmeyi kapat)</span></span>);
 
       default:
         return out(<span>bash: {name}: command not found<br /><span className="c-dim">komut listesi için: help</span></span>);
     }
-  }, [print]);
+  }, [print, runJob, flash, setTheme, theme]);
 
   /* Types a command into the prompt and runs it — used by clickable names and the status bar. */
   const typeAndRun = useCallback((cmd: string) => {
-    if (busyRef.current || !bootedRef.current) return;
+    if (busyRef.current || !bootedRef.current || jobRef.current) return;
     if (reducedMotion()) { execute(cmd); focusInput(); return; }
     busyRef.current = true;
     let i = 0;
@@ -377,6 +460,42 @@ const App: React.FC = () => {
   const quitSnake = useCallback(() => quitProgram('[snake] oyun kapatıldı'), [quitProgram]);
   const quitMatrix = useCallback(() => quitProgram('[matrix] simulation ended'), [quitProgram]);
   const quitHack = useCallback(() => quitProgram('[hack] connection terminated'), [quitProgram]);
+  const quitTop = useCallback(() => quitProgram(), [quitProgram]);
+
+  /* Ctrl+C interrupts a streamed command */
+  useEffect(() => {
+    if (!job) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        print(<div>^C</div>);
+        endJob();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [job, print, endJob]);
+
+  /* ↑ ↑ ↓ ↓ ← → ← → B A — cycles the phosphor colour */
+  useEffect(() => {
+    let pos = 0;
+    const onKey = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      pos = k === KONAMI[pos] ? pos + 1 : k === KONAMI[0] ? 1 : 0;
+      if (pos < KONAMI.length) return;
+      pos = 0;
+      const names = Object.keys(THEMES);
+      setThemeState(prev => {
+        const next = names[(names.indexOf(prev) + 1) % names.length];
+        saveTheme(next);
+        return next;
+      });
+      flash('degauss');
+      print(<div className="out c-amber">↑↑↓↓←→←→BA — gizli kod kabul edildi, fosfor rengi değişti.</div>);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [flash, print]);
 
   /* Screen saver after two idle minutes at the prompt */
   useEffect(() => {
@@ -403,10 +522,10 @@ const App: React.FC = () => {
   const caret = Math.min(cursor, input.length);
 
   return (
-    <div className={`room${crt ? '' : ' crt-off'}${power ? '' : ' power-off'}`}>
+    <div className={`room theme-${theme}${crt ? '' : ' crt-off'}${power ? '' : ' power-off'}`}>
       <div className="monitor" style={pictureVars}>
         <div className="screen">
-          <div className="tube">
+          <div className={`tube${fx ? ` tube-${fx}` : ''}`}>
             <div className="viewport">
             <RunContext.Provider value={typeAndRun}>
               <div
@@ -418,7 +537,7 @@ const App: React.FC = () => {
                 {lines.map(l => <div key={l.id} data-line={l.id}>{l.node}</div>)}
 
                 {/* No prompt while a full-screen program owns the keyboard */}
-                {!booting && !program && (
+                {!booting && !program && !job && (
                   <div className="input-line">
                     <Prompt cwd={cwd} />
                     <span>{input.slice(0, caret)}</span>
@@ -449,6 +568,7 @@ const App: React.FC = () => {
             {program === 'hack' && <div className="program"><HackMode onQuit={quitHack} /></div>}
             {program === 'typer' && <div className="program"><TyperGame onQuit={quitTyper} /></div>}
             {program === 'saver' && <div className="program"><ScreenSaver onQuit={quitSaver} /></div>}
+            {program === 'top' && <div className="program"><TopView onQuit={quitTop} /></div>}
             </div>
 
             {/* tmux-style status bar: the clickable way around for visitors who would rather not type */}

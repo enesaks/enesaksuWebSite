@@ -65,10 +65,10 @@ export const EXPERIENCE: { start:string; end:string|null; company:string; role:s
     'Operasyonel olayların ServiceNow üzerinden takibi ve ilk müdahale süreçlerinde görev aldım.',
     'Monitoring araçları ve olay yönetimi süreçleri konusunda operasyon ekibine destek sağladım.',
   ] },
-  { start:'2025-08', end:'2025-09', company:'Halkbank', role:'IT Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+  { start:'2025-08', end:'2025-09', company:'Halkbank', role:'IT Intern', badge:null, badgeColor:'', details:[
     'Kurumsal BT süreçlerini gözlemledim ve teknik ekiplerle birlikte çalışma deneyimi kazandım.',
   ] },
-  { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım', role:'.NET Developer Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+  { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım', role:'.NET Developer Intern', badge:null, badgeColor:'', details:[
     'REST API geliştirme ve üçüncü parti servislerle entegrasyon çalışmaları gerçekleştirdim.',
     'Entity Framework Code First yaklaşımı ve SQL tabanlı uygulamalar üzerinde geliştirme yaptım.',
   ] },

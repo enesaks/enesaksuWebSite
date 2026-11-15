@@ -103,6 +103,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onQuit }) => {
     if (!canvas || !ctx) return;
     let raf = 0;
     let last = 0;
+    const css = getComputedStyle(canvas);
+    const color = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+    const C = {
+      grid: `rgba(${color('--glow-rgb', '108, 245, 143')}, 0.13)`,
+      food: color('--amber', '#ffcf5c'), glow: color('--fg', '#5dff8a'), dead: color('--red', '#ff7a6b'),
+      head: color('--bright', '#d3ffe0'), body: color('--fg', '#54e87c'), body2: color('--green', '#44cf6c'),
+    };
 
     const step = () => {
       const g = game.current;
@@ -128,24 +135,24 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onQuit }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // faint dot grid, like unlit character cells
-      ctx.fillStyle = 'rgba(108, 245, 143, 0.13)';
+      ctx.fillStyle = C.grid;
       const dot = Math.max(1, Math.round(c * 0.08));
       for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) ctx.fillRect(x * c + c / 2 - dot / 2, y * c + c / 2 - dot / 2, dot, dot);
 
       // food pulses
       const fs = c * (0.62 + 0.2 * Math.sin(t / 160));
-      ctx.shadowColor = '#ffcf5c';
+      ctx.shadowColor = C.food;
       ctx.shadowBlur = c * 0.9;
-      ctx.fillStyle = '#ffcf5c';
+      ctx.fillStyle = C.food;
       ctx.fillRect(g.food.x * c + (c - fs) / 2, g.food.y * c + (c - fs) / 2, fs, fs);
 
       // snake: bright head, striped body
-      ctx.shadowColor = '#5dff8a';
+      ctx.shadowColor = C.glow;
       ctx.shadowBlur = c * 0.7;
       const dead = statusRef.current === 'over';
       for (let i = g.snake.length - 1; i >= 0; i--) {
         const s = g.snake[i];
-        ctx.fillStyle = dead ? '#ff7a6b' : i === 0 ? '#d3ffe0' : i % 2 ? '#54e87c' : '#44cf6c';
+        ctx.fillStyle = dead ? C.dead : i === 0 ? C.head : i % 2 ? C.body : C.body2;
         ctx.fillRect(s.x * c + gap, s.y * c + gap, c - gap * 2, c - gap * 2);
       }
       ctx.shadowBlur = 0;
