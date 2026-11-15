@@ -60,7 +60,7 @@ export const CERTIFICATES = [
 
 // start / end: 'YYYY-MM'. end: null => devam ediyor (süre her ziyarette güncel hesaplanır).
 export const EXPERIENCE: { start:string; end:string|null; company:string; role:string; badge:string|null; badgeColor:string; details:string[] }[] = [
-  { start:'2025-12', end:'2026-08', company:'Kartaca', role:'System Monitoring Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+  { start:'2025-12', end:'2026-08', company:'Kartaca', role:'System Monitoring', badge:null, badgeColor:'', details:[
     'Şişecam fabrikalarındaki üretim sistemlerinin ve makinaların Prometheus ve Grafana ile sürekli izlenmesinde aktif rol aldım.',
     'Operasyonel olayların ServiceNow üzerinden takibi ve ilk müdahale süreçlerinde görev aldım.',
     'Monitoring araçları ve olay yönetimi süreçleri konusunda operasyon ekibine destek sağladım.',
