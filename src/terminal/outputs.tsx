@@ -249,37 +249,39 @@ export const Neofetch: React.FC<{ uptime: string }> = ({ uptime }) => (
   </div>
 );
 
-const HELP: [string, string][] = [
-  ['about', 'hakkımda (cat ~/about.txt)'],
-  ['writings', 'Medium yazılarım'],
-  ['projects', 'GitHub projelerim'],
-  ['experience, skills, certs', 'deneyim detayları, beceriler, sertifikalar'],
-  ['contact', 'iletişim (cat ~/contact.json)'],
-  ['ls [-la] [yol]', 'dizini listele'],
-  ['cd <dizin>', 'dizin değiştir (cd .. / cd ~)'],
-  ['cat <dosya>', 'dosyayı yazdır'],
-  ['open <hedef>', 'github | linkedin | medium | instagram | mail | dosya | URL'],
-  ['git log [--oneline]', 'kariyer geçmişi, commit olarak'],
-  ['man <komut>', 'komutun kılavuz sayfası'],
-  ['<komut> | grep <kalıp>', 'çıktıyı süz'],
-  ['tree, pwd, whoami, date', 'klasik araçlar'],
-  ['uname, uptime, echo, history', 'klasik araçlar'],
-  ['neofetch', 'sistem özeti'],
-  ['snake, typer', 'oyunlar'],
-  ['matrix, hack, screensaver', 'eğlence'],
-  ['fortune, cowsay <söz>', 'günün sözü'],
-  ['top, ping <adres>', 'canlı süreç listesi, ağ testi'],
-  ['curl, traceroute, ssh', 'ağ araçları'],
-  ['weather [şehir]', 'hava durumu'],
-  ['vim', 'çıkabilirsen'],
-  ['achievements', 'açtığın başarımlar'],
-  ['docker ps|images|run, kubectl get pods', 'sahte konteynerler ve podlar'],
-  ['theme green|amber|white|blue', 'fosfor rengini değiştir'],
-  ['degauss', 'tüpü manyetik olarak sıfırla'],
-  ['sound on|off', 'tüp ve klavye sesleri'],
-  ['crt on|off', 'tüp monitör efektlerini aç / kapat'],
-  ['clear', 'ekranı temizle (Ctrl+L)'],
-  ['exit', 'monitörü kapat'],
+/** [label shown, command run on click]. Placeholders get a sensible example when clicked. */
+type HelpItem = [string, string];
+const HELP: [HelpItem[], string, string?][] = [
+  [[['about', 'about']], 'hakkımda (cat ~/about.txt)'],
+  [[['writings', 'writings']], 'Medium yazılarım'],
+  [[['projects', 'projects']], 'GitHub projelerim'],
+  [[['experience', 'experience'], ['skills', 'skills'], ['certs', 'certs']], 'deneyim detayları, beceriler, sertifikalar'],
+  [[['contact', 'contact']], 'iletişim (cat ~/contact.json)'],
+  [[['ls [-la] [yol]', 'ls -la']], 'dizini listele'],
+  [[['cd <dizin>', 'cd writings']], 'dizin değiştir (cd .. / cd ~)'],
+  [[['cat <dosya>', 'cat about.txt']], 'dosyayı yazdır'],
+  [[['open <hedef>', 'open github']], 'github | linkedin | medium | instagram | mail | dosya | URL'],
+  [[['git log [--oneline]', 'git log --oneline']], 'kariyer geçmişi, commit olarak'],
+  [[['man <komut>', 'man ls']], 'komutun kılavuz sayfası'],
+  [[['<komut> | grep <kalıp>', 'experience | grep -i aws']], 'çıktıyı süz'],
+  [[['tree', 'tree'], ['pwd', 'pwd'], ['whoami', 'whoami'], ['date', 'date']], 'klasik araçlar'],
+  [[['uname', 'uname -a'], ['uptime', 'uptime'], ['echo', 'echo merhaba'], ['history', 'history']], 'klasik araçlar'],
+  [[['neofetch', 'neofetch']], 'sistem özeti'],
+  [[['snake', 'snake'], ['typer', 'typer']], 'oyunlar'],
+  [[['matrix', 'matrix'], ['hack', 'hack'], ['screensaver', 'screensaver']], 'eğlence'],
+  [[['fortune', 'fortune'], ['cowsay <söz>', 'cowsay merhaba']], 'günün sözü'],
+  [[['top', 'top'], ['ping <adres>', 'ping enesaks.com']], 'canlı süreç listesi, ağ testi'],
+  [[['curl', 'curl enesaks.com'], ['traceroute', 'traceroute enesaks.com'], ['ssh', 'ssh enes@enesaks.com']], 'ağ araçları'],
+  [[['weather [şehir]', 'weather']], 'hava durumu'],
+  [[['vim', 'vim']], 'çıkabilirsen'],
+  [[['achievements', 'achievements']], 'açtığın başarımlar'],
+  [[['docker ps', 'docker ps'], ['docker images', 'docker images'], ['docker run', 'docker run hello-world'], ['kubectl get pods', 'kubectl get pods']], 'sahte konteynerler ve podlar'],
+  [[['theme green', 'theme green'], ['amber', 'theme amber'], ['white', 'theme white'], ['blue', 'theme blue']], 'fosfor rengini değiştir', '|'],
+  [[['degauss', 'degauss']], 'tüpü manyetik olarak sıfırla'],
+  [[['sound on', 'sound on'], ['off', 'sound off']], 'tüp ve klavye sesleri', '|'],
+  [[['crt on', 'crt on'], ['off', 'crt off']], 'tüp monitör efektlerini aç / kapat', '|'],
+  [[['clear', 'clear']], 'ekranı temizle (Ctrl+L)'],
+  [[['exit', 'exit']], 'monitörü kapat'],
 ];
 
 export const BASHRC = `# ~/.bashrc
@@ -316,11 +318,19 @@ export const Secrets: React.FC = () => (
 
 export const Help: React.FC = () => (
   <div>
-    <div className="c-dim">GNU bash, version 5.2.21 — enesaks.com sürümü. Kullanılabilir komutlar:</div>
+    <div className="c-dim">GNU bash, version 5.2.21 — enesaks.com sürümü. Bir komutu çalıştırmak için üstüne tıkla:</div>
     <div className="kv help">
-      {HELP.map(([cmd, desc]) => (
-        <React.Fragment key={cmd}>
-          <span className="c-green">{cmd}</span><span>{desc}</span>
+      {HELP.map(([items, desc, sep = ', ']) => (
+        <React.Fragment key={items[0][1]}>
+          <span>
+            {items.map(([label, run], i) => (
+              <React.Fragment key={run}>
+                {i > 0 && <span className="c-dim">{sep === '|' ? '|' : sep}</span>}
+                <Cmd run={run}>{label}</Cmd>
+              </React.Fragment>
+            ))}
+          </span>
+          <span>{desc}</span>
         </React.Fragment>
       ))}
     </div>
