@@ -343,6 +343,7 @@ const App: React.FC = () => {
       <div className="monitor">
         <div className="screen">
           <div className="tube">
+            <div className="viewport">
             <RunContext.Provider value={typeAndRun}>
               <div
                 className="term"
@@ -352,7 +353,8 @@ const App: React.FC = () => {
                 {booting && BOOT.slice(0, bootCount).map((l, i) => <BootLine key={i} text={l.text} cls={l.cls} />)}
                 {lines.map(l => <div key={l.id} data-line={l.id}>{l.node}</div>)}
 
-                {!booting && (
+                {/* No prompt while a full-screen program owns the keyboard */}
+                {!booting && !program && (
                   <div className="input-line">
                     <Prompt cwd={cwd} />
                     <span>{input.slice(0, caret)}</span>
@@ -378,11 +380,18 @@ const App: React.FC = () => {
               </div>
             </RunContext.Provider>
 
+            {program === 'snake' && <div className="program"><SnakeGame onQuit={quitSnake} /></div>}
+            {program === 'matrix' && <div className="program"><MatrixRain onQuit={quitMatrix} /></div>}
+            {program === 'hack' && <div className="program"><HackMode onQuit={quitHack} /></div>}
+            </div>
+
             {/* tmux-style status bar: the clickable way around for visitors who would rather not type */}
             <div className="tmux">
               <span className="tmux-session">[enes]</span>
               <span className="tmux-windows">
-                {WINDOWS.map((w, i) => (
+                {program ? (
+                  <button type="button" className="on">{WINDOWS.length}:{program}*</button>
+                ) : WINDOWS.map((w, i) => (
                   <button key={w} type="button" className={active === w ? 'on' : ''} onClick={() => typeAndRun(w)}>
                     {i}:{w}{active === w ? '*' : ''}
                   </button>
@@ -390,10 +399,6 @@ const App: React.FC = () => {
               </span>
               <span className="tmux-right">"enesaks" <Clock /></span>
             </div>
-
-            {program === 'snake' && <div className="program"><SnakeGame onQuit={quitSnake} /></div>}
-            {program === 'matrix' && <div className="program"><MatrixRain onQuit={quitMatrix} /></div>}
-            {program === 'hack' && <div className="program"><HackMode onQuit={quitHack} /></div>}
           </div>
 
           <div className="fx fx-scan" />

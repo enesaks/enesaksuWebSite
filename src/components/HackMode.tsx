@@ -37,14 +37,23 @@ const HackMode: React.FC<{ onQuit: () => void }> = ({ onQuit }) => {
   const idx = useRef(0);
   const box = useRef<HTMLDivElement>(null);
 
+  // Each key press (or tap, on phones) reveals the next few characters.
+  const typeMore = (times = 1) => {
+    let chunk = '';
+    for (let i = 0; i < times; i++) {
+      const n = Math.floor(Math.random() * 5) + 3;
+      chunk += HACK_DUMMY_CODE.substring(idx.current, idx.current + n);
+      idx.current = (idx.current + n) % HACK_DUMMY_CODE.length;
+    }
+    setCode(prev => (prev + chunk).slice(-6000));
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key.toLowerCase() === 'q') { onQuit(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       e.preventDefault();
-      const n = Math.floor(Math.random() * 5) + 3;
-      const chunk = HACK_DUMMY_CODE.substring(idx.current, idx.current + n);
-      idx.current = (idx.current + n) % HACK_DUMMY_CODE.length;
-      setCode(prev => (prev + chunk).slice(-6000));
+      typeMore();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -53,9 +62,10 @@ const HackMode: React.FC<{ onQuit: () => void }> = ({ onQuit }) => {
   useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [code]);
 
   return (
-    <div ref={box} className="hack">
+    <div ref={box} className="hack" onPointerDown={() => typeMore(6)}>
+      <div className="c-dim">root@target:~# ./exploit --stealth   <span className="hack-hint">(klavyede rastgele tuşlara bas ya da ekrana dokun)</span></div>
       {code}<span className="cursor">{' '}</span>
-      <button type="button" className="program-exit" onClick={onQuit}>[ bir şeyler yaz · ESC / Q: çık ]</button>
+      <button type="button" className="program-exit" onPointerDown={e => e.stopPropagation()} onClick={onQuit}>[ ESC / Q: çık ]</button>
     </div>
   );
 };
