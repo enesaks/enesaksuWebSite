@@ -2,17 +2,24 @@ import { getRemote, Article, Project } from './remote';
 
 /** A tiny read-only virtual file system: ~ with two directories fed by Medium and GitHub. */
 export type Kind = 'dir' | 'file' | 'exec' | 'repo';
-export interface Entry { name: string; kind: Kind; size: number; article?: Article; project?: Project }
+export interface Entry { name: string; kind: Kind; size: number; article?: Article; project?: Project; hidden?: boolean; owner?: string; mode?: string }
 
 export const HOME = '/home/enes';
 /** cwd is '' for ~, or the name of a first-level directory. */
 export const cwdLabel = (cwd: string) => (cwd ? `~/${cwd}` : '~');
 export const cwdAbs = (cwd: string) => (cwd ? `${HOME}/${cwd}` : HOME);
 
-export const entries = (dir: string): Entry[] | null => {
+/** Lists a directory. Dotfiles are only included when `all` is set, like `ls -a`. */
+export const entries = (dir: string, all = false): Entry[] | null => {
   const { articles, projects } = getRemote();
   if (dir === '') {
+    const hidden: Entry[] = all ? [
+      { name: '.bash_history', kind: 'file', size: 1337, hidden: true, mode: '-rw-------' },
+      { name: '.bashrc', kind: 'file', size: 220, hidden: true },
+      { name: '.secrets', kind: 'file', size: 42, hidden: true, owner: 'root', mode: '-rw-------' },
+    ] : [];
     return [
+      ...hidden,
       { name: 'about.txt', kind: 'file', size: 512 },
       { name: 'contact.json', kind: 'file', size: 348 },
       { name: 'experience.log', kind: 'file', size: 421 },
@@ -48,7 +55,7 @@ export const resolvePath = (cwd: string, arg: string): Resolved => {
   }
 
   if (segs.length === 0) return { ok: true, dir: '' };
-  const top = entries('')!.find(e => e.name === segs[0]);
+  const top = entries('', true)!.find(e => e.name === segs[0]);
   if (!top) return { ok: false, reason: 'notfound' };
   if (segs.length === 1) return top.kind === 'dir' ? { ok: true, dir: top.name } : { ok: true, dir: '', entry: top };
   if (top.kind !== 'dir') return { ok: false, reason: 'notdir' };
@@ -65,6 +72,6 @@ export const completePath = (cwd: string, partial: string): { base: string; name
   const prefix = cut >= 0 ? partial.slice(cut + 1) : partial;
   const target = base ? resolvePath(cwd, base) : ({ ok: true, dir: cwd } as Resolved);
   if (!target.ok || target.entry) return { base, names: [] };
-  const list = entries(target.dir) || [];
+  const list = entries(target.dir, prefix.startsWith('.')) || [];
   return { base, names: list.filter(e => e.name.startsWith(prefix)).map(e => ({ name: e.name, kind: e.kind })) };
 };

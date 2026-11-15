@@ -153,7 +153,7 @@ const entryCommand = (dir: string, e: Entry) => {
 
 export const Ls: React.FC<{ dir: string; long: boolean; all: boolean; only?: Entry }> = ({ dir, long, all, only }) => {
   useRemote(); // re-render when live data arrives
-  const list = only ? [only] : entries(dir) || [];
+  const list = only ? [only] : entries(dir, all) || [];
   const now = new Date();
   const stamp = `${MONTHS[now.getMonth()]} ${String(now.getDate()).padStart(2, ' ')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const dots: Entry[] = all && !only ? [{ name: '.', kind: 'dir', size: 4096 }, { name: '..', kind: 'dir', size: 4096 }] : [];
@@ -172,8 +172,8 @@ export const Ls: React.FC<{ dir: string; long: boolean; all: boolean; only?: Ent
       {[...dots, ...list].map(e => (
         <div key={e.name} className="ls-row">
           <span className="ls-meta">
-            {e.kind === 'dir' || e.kind === 'repo' ? 'drwxr-xr-x' : e.kind === 'exec' ? '-rwxr-xr-x' : '-rw-r--r--'}
-            {' enes enes '}{String(e.size).padStart(5, ' ')} {stamp}{' '}
+            {e.mode || (e.kind === 'dir' || e.kind === 'repo' ? 'drwxr-xr-x' : e.kind === 'exec' ? '-rwxr-xr-x' : '-rw-r--r--')}
+            {` ${(e.owner || 'enes').padEnd(4)} ${(e.owner || 'enes').padEnd(4)} `}{String(e.size).padStart(5, ' ')} {stamp}{' '}
           </span>
           {name(e)}
         </div>
@@ -236,10 +236,42 @@ const HELP: [string, string][] = [
   ['tree, pwd, whoami, date', 'klasik araçlar'],
   ['uname, uptime, echo, history', 'klasik araçlar'],
   ['neofetch', 'sistem özeti'],
-  ['snake, matrix, hack', 'eğlence'],
+  ['snake, typer', 'oyunlar'],
+  ['matrix, hack, screensaver', 'eğlence'],
+  ['fortune, cowsay <söz>', 'günün sözü'],
+  ['sound on|off', 'tüp ve klavye sesleri'],
   ['crt on|off', 'tüp monitör efektlerini aç / kapat'],
   ['clear', 'ekranı temizle (Ctrl+L)'],
 ];
+
+export const BASHRC = `# ~/.bashrc
+export PS1='\\u@enesaks:\\w\\$ '
+export EDITOR=vim
+
+alias ll='ls -la'
+alias blog='writings'
+alias k='kubectl'
+alias tf='terraform'
+alias please='sudo'
+
+# fortune | cowsay`;
+
+export const Secrets: React.FC = () => (
+  <div>
+    <div>[sudo] password for enes: ********</div>
+    <div className="c-amber gap-top"># tebrikler, gizli dosyayı buldun.</div>
+    <div className="kv help">
+      <span className="c-green"><Cmd run="typer">typer</Cmd></span><span>düşen komutları yazarak vur</span>
+      <span className="c-green"><Cmd run="snake">snake</Cmd></span><span>klasik yılan</span>
+      <span className="c-green"><Cmd run="matrix">matrix</Cmd> · <Cmd run="hack">hack</Cmd></span><span>ekranı ele geçir</span>
+      <span className="c-green"><Cmd run="fortune">fortune</Cmd> · <Cmd run="cowsay moo">cowsay</Cmd></span><span>günün sözü, inekli</span>
+      <span className="c-green"><Cmd run="screensaver">screensaver</Cmd></span><span>ekran koruyucu (2 dk boşta kalınca kendiliğinden)</span>
+      <span className="c-green"><Cmd run="sound on">sound on</Cmd></span><span>tüp vınlaması ve tuş sesleri</span>
+    </div>
+    <div className="c-dim">ipucu: kasadaki iki düğme parlaklık ve kontrastı ayarlar, güç düğmesi de çalışır.</div>
+    <div className="gap-top">API_KEY=<span className="c-red">nice-try-;)</span></div>
+  </div>
+);
 
 export const Help: React.FC = () => (
   <div>

@@ -213,6 +213,25 @@
 /* The part of the tube above the status bar: scrollback, or a running program */
 .viewport { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
+/* Brightness / contrast knobs act on the picture only, not on the glass effects */
+.viewport, .tmux { filter: brightness(var(--bri, 1)) contrast(var(--con, 1)); }
+
+.cow { white-space: pre; overflow-x: auto; scrollbar-width: none; }
+
+/* Screen saver */
+.saver { position: relative; height: 100%; overflow: hidden; background: #010803; }
+.saver-logo { position: absolute; left: 0; top: 0; margin: 0; will-change: transform; }
+.saver-hint { position: absolute; left: 0; right: 0; bottom: .6em; text-align: center; opacity: .7; }
+
+/* Typer */
+.typer { position: relative; height: 100%; display: flex; flex-direction: column; gap: .5em; padding: clamp(12px, 2vw, 24px) clamp(16px, 2.8vw, 36px) .5em; }
+.typer-field { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--dim); box-shadow: 0 0 14px rgba(90, 255, 140, .28), inset 0 0 22px rgba(90, 255, 140, .08); }
+.typer-word { position: absolute; top: 0; white-space: nowrap; will-change: transform; }
+.typer-word.locked { color: var(--amber); }
+.typer-hit { background: var(--amber); color: var(--screen); text-shadow: none; }
+.typer-line { position: absolute; left: 0; right: 0; bottom: 22px; border-top: 1px dashed var(--red); opacity: .7; }
+.typer-input { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; pointer-events: none; }
+
 /* Snake */
 .snake { height: 100%; display: flex; flex-direction: column; gap: .5em; padding: clamp(12px, 2vw, 24px) clamp(16px, 2.8vw, 36px) .5em; }
 .snake-hud { display: flex; flex-wrap: wrap; column-gap: 3ch; align-items: baseline; }
@@ -255,11 +274,18 @@
 .brand { font-size: 13px; font-weight: 700; letter-spacing: 4px; color: #48432f; text-shadow: 0 1px 0 rgba(255,255,255,.55); }
 .model { font-size: 9px; letter-spacing: 2px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .knobs { margin-left: auto; display: flex; gap: 10px; }
-.knobs i {
-  width: 16px; height: 16px; border-radius: 50%;
+.knob {
+  position: relative; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #948d7b, #575140);
-  box-shadow: 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 2px rgba(0,0,0,.5);
+  box-shadow: 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 2px rgba(0,0,0,.5), 0 2px 3px rgba(0,0,0,.35);
+  cursor: ns-resize; touch-action: none;
 }
+.knob::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 2px; height: 9px; margin-left: -1px;
+  background: #e9e3d2; border-radius: 1px;
+  transform-origin: 50% 0; transform: rotate(calc(var(--rot) + 180deg));
+}
+.knob:focus-visible { outline: 2px solid #2b6cff; outline-offset: 2px; }
 .power {
   width: 38px; height: 22px; border: 0; border-radius: 4px; cursor: pointer;
   display: grid; place-items: center;

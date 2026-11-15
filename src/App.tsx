@@ -4,21 +4,29 @@ import './styles/App.css';
 import SnakeGame from './components/SnakeGame';
 import MatrixRain from './components/MatrixRain';
 import HackMode from './components/HackMode';
+import TyperGame from './components/TyperGame';
+import ScreenSaver from './components/ScreenSaver';
+import Knob from './components/Knob';
+import { click, beep, powerOn, powerOff, setSound, soundEnabled } from './terminal/sound';
+import { fortune, cowsay } from './terminal/fun';
 import { BOOT } from './data/constants';
 import { loadRemote } from './terminal/remote';
 import { cwdLabel, cwdAbs, resolvePath, completePath, Kind } from './terminal/fs';
 import {
-  RunContext, About, Experience, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS,
+  RunContext, About, Experience, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
 } from './terminal/outputs';
 
 const COMMANDS = [
-  'about', 'cat', 'cd', 'clear', 'contact', 'crt', 'date', 'echo', 'exit', 'experience', 'hack', 'help', 'history',
-  'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'snake', 'tree', 'uname', 'uptime', 'whoami', 'writings',
+  'about', 'cat', 'cd', 'clear', 'contact', 'cowsay', 'crt', 'date', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
+  'history', 'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'screensaver', 'snake', 'sound', 'sudo', 'tree',
+  'typer', 'uname', 'uptime', 'whoami', 'writings',
 ];
 const WINDOWS = ['about', 'writings', 'projects', 'contact', 'help'];
 const HISTORY_KEY = 'enesaks.history';
+const PICTURE_KEY = 'enesaks.picture';
+const IDLE_MS = 120000;
 
-type Program = null | 'snake' | 'matrix' | 'hack';
+type Program = null | 'snake' | 'matrix' | 'hack' | 'typer' | 'saver';
 interface Line { id: number; node: React.ReactNode }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -26,6 +34,13 @@ const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia
 const loadHistory = (): string[] => {
   try { const v = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); return Array.isArray(v) ? v.slice(-100) : []; }
   catch { return []; }
+};
+const loadPicture = (): { bri: number; con: number } => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PICTURE_KEY) || '{}');
+    const ok = (n: unknown) => typeof n === 'number' && n >= 0 && n <= 1;
+    return { bri: ok(v.bri) ? v.bri : 0.5, con: ok(v.con) ? v.con : 0.5 };
+  } catch { return { bri: 0.5, con: 0.5 }; }
 };
 const saveHistory = (h: string[]) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(-100))); } catch { /* storage unavailable */ } };
 
@@ -58,6 +73,7 @@ const App: React.FC = () => {
   const [crt, setCrt] = useState(true);
   const [power, setPower] = useState(true);
   const [active, setActive] = useState('about');
+  const [picture, setPicture] = useState(loadPicture);
 
   const cwdRef = useRef('');
   const histRef = useRef<string[]>(loadHistory());
@@ -150,6 +166,9 @@ const App: React.FC = () => {
           if (e.name === 'about.txt') return <About key={i} />;
           if (e.name === 'experience.log') return <Experience key={i} />;
           if (e.name === 'contact.json') return <Contact key={i} />;
+          if (e.name === '.bashrc') return <div key={i} className="pre">{BASHRC}</div>;
+          if (e.name === '.bash_history') return <div key={i} className="pre">{hist.join('\n')}</div>;
+          if (e.name === '.secrets') return <div key={i}>{cmd}: {a}: Permission denied</div>;
           return <div key={i} className="pre">{'#!/bin/bash\n# ASCII snake — WASD / ok tuşları, Q ile çık\nexec /usr/games/snake "$@"'}</div>;
         }));
       }
@@ -178,7 +197,23 @@ const App: React.FC = () => {
       case 'matrix': case 'cmatrix': return launch('matrix');
       case 'hack': return launch('hack');
 
-      case 'sudo': case 'su': return out('enes is not in the sudoers file.  This incident will be reported.');
+      case 'sudo': case 'please': {
+        const r = args[0] === 'cat' && args[1] ? resolvePath(here, args[1]) : null;
+        if (r && r.ok && r.entry?.name === '.secrets') return out(<Secrets />);
+        return out('enes is not in the sudoers file.  This incident will be reported.');
+      }
+      case 'su': return out('su: Authentication failure');
+
+      case 'typer': return launch('typer');
+      case 'screensaver': return launch('saver');
+      case 'fortune': return out(fortune());
+      case 'cowsay': return out(<div className="cow">{cowsay(trimmed.slice(6).trim().replace(/^(["'])(.*)\1$/, '$2') || fortune())}</div>);
+      case 'sound': {
+        const arg = (args[0] || '').toLowerCase();
+        if (arg !== 'on' && arg !== 'off') return out(`kullanım: sound on|off  (şu an: ${soundEnabled() ? 'on' : 'off'})`);
+        setSound(arg === 'on');
+        return out(`ses: ${arg}`);
+      }
       case 'rm': case 'mv': case 'touch': case 'mkdir': case 'cp': case 'nano': case 'vim': case 'vi':
         return out(`${cmd}: cannot modify '${args[args.length - 1] || '.'}': Read-only file system`);
       case 'exit': case 'logout': return out(<span>logout<br /><span className="c-dim">(bu oturum kapanmaz — çıkmak için sekmeyi kapat)</span></span>);
@@ -249,7 +284,7 @@ const App: React.FC = () => {
     const el = anchor != null ? box.querySelector<HTMLElement>(`[data-line="${anchor}"]`) : null;
     if (el && box.scrollHeight - el.offsetTop > box.clientHeight) box.scrollTop = el.offsetTop - 8;
     else box.scrollTop = box.scrollHeight;
-  }, [lines, bootCount, booting]);
+  }, [lines, bootCount, booting, program]);
   useLayoutEffect(() => {
     const box = scrollRef.current;
     if (box && input) box.scrollTop = box.scrollHeight;
@@ -273,7 +308,7 @@ const App: React.FC = () => {
       base = (partial.startsWith('./') ? './' : '') + r.base;
       names = r.names;
     }
-    if (!names.length) return;
+    if (!names.length) { beep(); return; }
     if (names.length === 1) {
       setLine(head + base + names[0].name + (names[0].kind === 'dir' ? '/' : ' '));
       return;
@@ -290,6 +325,7 @@ const App: React.FC = () => {
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (busyRef.current) { e.preventDefault(); return; }
     const key = e.key.toLowerCase();
+    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Enter') click();
 
     if (e.ctrlKey && key === 'l') { e.preventDefault(); setLines([]); return; }
     if (e.ctrlKey && key === 'u') { e.preventDefault(); setLine(''); return; }
@@ -327,20 +363,44 @@ const App: React.FC = () => {
     }
   };
 
-  const quitProgram = useCallback((message: string) => {
+  const quitProgram = useCallback((message?: string) => {
     setProgram(null);
-    print(<div className="out c-dim">{message}</div>);
+    if (message) print(<div className="out c-dim">{message}</div>);
     focusInput();
   }, [print, focusInput]);
+  const quitTyper = useCallback(() => quitProgram('[typer] oyun kapatıldı'), [quitProgram]);
+  const quitSaver = useCallback(() => quitProgram(), [quitProgram]);
   const quitSnake = useCallback(() => quitProgram('[snake] oyun kapatıldı'), [quitProgram]);
   const quitMatrix = useCallback(() => quitProgram('[matrix] simulation ended'), [quitProgram]);
   const quitHack = useCallback(() => quitProgram('[hack] connection terminated'), [quitProgram]);
+
+  /* Screen saver after two idle minutes at the prompt */
+  useEffect(() => {
+    if (booting || program || !power) return;
+    let timer = window.setTimeout(() => setProgram('saver'), IDLE_MS);
+    const reset = () => { clearTimeout(timer); timer = window.setTimeout(() => setProgram('saver'), IDLE_MS); };
+    const events = ['keydown', 'pointerdown', 'pointermove', 'wheel'] as const;
+    events.forEach(ev => window.addEventListener(ev, reset, { passive: true }));
+    return () => { clearTimeout(timer); events.forEach(ev => window.removeEventListener(ev, reset)); };
+  }, [booting, program, power]);
+
+  const adjustPicture = (patch: Partial<{ bri: number; con: number }>) => {
+    const next = { ...picture, ...patch };
+    setPicture(next);
+    try { localStorage.setItem(PICTURE_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+  };
+  const togglePower = () => {
+    if (power) powerOff(); else powerOn();
+    setPower(!power);
+  };
+  // Knob at centre = neutral picture; the ends are clearly dim / washed out but still readable.
+  const pictureVars = { '--bri': (0.45 + picture.bri * 1.1).toFixed(2), '--con': (0.6 + picture.con * 0.8).toFixed(2) } as React.CSSProperties;
 
   const caret = Math.min(cursor, input.length);
 
   return (
     <div className={`room${crt ? '' : ' crt-off'}${power ? '' : ' power-off'}`}>
-      <div className="monitor">
+      <div className="monitor" style={pictureVars}>
         <div className="screen">
           <div className="tube">
             <div className="viewport">
@@ -383,6 +443,8 @@ const App: React.FC = () => {
             {program === 'snake' && <div className="program"><SnakeGame onQuit={quitSnake} /></div>}
             {program === 'matrix' && <div className="program"><MatrixRain onQuit={quitMatrix} /></div>}
             {program === 'hack' && <div className="program"><HackMode onQuit={quitHack} /></div>}
+            {program === 'typer' && <div className="program"><TyperGame onQuit={quitTyper} /></div>}
+            {program === 'saver' && <div className="program"><ScreenSaver onQuit={quitSaver} /></div>}
             </div>
 
             {/* tmux-style status bar: the clickable way around for visitors who would rather not type */}
@@ -410,8 +472,11 @@ const App: React.FC = () => {
         <div className="chin">
           <span className="brand">ENESAKS</span>
           <span className="model">EA-1401 · PHOSPHOR DISPLAY</span>
-          <span className="knobs" aria-hidden="true"><i /><i /></span>
-          <button type="button" className="power" aria-label={power ? 'Monitörü kapat' : 'Monitörü aç'} title="Güç" onClick={() => setPower(p => !p)}>
+          <span className="knobs">
+            <Knob label="Parlaklık" value={picture.bri} onChange={bri => adjustPicture({ bri })} />
+            <Knob label="Kontrast" value={picture.con} onChange={con => adjustPicture({ con })} />
+          </span>
+          <button type="button" className="power" aria-label={power ? 'Monitörü kapat' : 'Monitörü aç'} title="Güç" onClick={togglePower}>
             <span className="led" />
           </button>
         </div>
