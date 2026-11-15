@@ -36,12 +36,48 @@ export const PROJECTS = [
 
 export const FOCUS = ['Linux', 'Docker', 'CI/CD', 'AWS', 'Cloud'];
 
+export const SUMMARY =
+  'Bilgisayar Mühendisliği mezunu olarak yazılım geliştirme geçmişimin ardından kariyerimi DevOps ve Cloud alanlarına yönlendirdim. ' +
+  'Linux sistemleri, Docker, AWS servisleri ve sistem izleme araçları üzerinde uygulamalı deneyim edindim. ' +
+  'CI/CD, Kubernetes, Infrastructure as Code ve Cloud Engineering alanlarında uzmanlaşmayı hedefliyorum.';
+
+export const EDUCATION = { school: 'Bolu Abant İzzet Baysal Üniversitesi', degree: 'Bilgisayar Mühendisliği', years: '2022 – 2025', gpa: '3.17 / 4.00' };
+
+export const LANGUAGES = 'İngilizce (A2–B1)';
+
+export const SKILLS: [string, string[]][] = [
+  ['cloud',      ['AWS (EC2, S3, IAM, Auto Scaling, Load Balancer)']],
+  ['devops & os', ['Linux', 'Docker', 'Git', 'GitHub', 'Bash/Shell Scripting', 'N8N']],
+  ['monitoring', ['Prometheus', 'Grafana', 'ServiceNow']],
+  ['yazılım',    ['Python', 'C#', '.NET Core', 'Java', 'SQL', 'Kotlin', 'C']],
+];
+
+export const CERTIFICATES = [
+  'Google Cloud Digital Leader',
+  'Bulut Bilişim Temelleri ve AWS Çözüm Mimarlığına Giriş',
+  'NDG Linux Unhatched',
+  "A'dan Z'ye Docker",
+  'Java Web Development (Backend)',
+  'Python & Qt Application Development',
+  'Android Mobile Application Development',
+  'Introduction to Cybersecurity (Cisco)',
+];
+
 // start / end: 'YYYY-MM'. end: null => devam ediyor (süre her ziyarette güncel hesaplanır).
-export const EXPERIENCE: { start:string; end:string|null; company:string; role:string; badge:string|null; badgeColor:string }[] = [
-  { start:'2025-12', end:'2026-08', company:'Kartaca',           role:'System Monitoring Intern',     badge:'INTERN',  badgeColor:'var(--amber)' },
-  { start:'2025-08', end:'2025-09', company:'Halkbank',          role:'Stajyer',                      badge:'INTERN',  badgeColor:'var(--amber)' },
-  { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım',   role:'.NET Developer Intern',        badge:'INTERN',  badgeColor:'var(--amber)' },
-  { start:'2024-02', end:'2024-08', company:'Acunmedya Akademi', role:'Nish Trainings: C# & ASP.NET', badge:null,      badgeColor:'' },
+export const EXPERIENCE: { start:string; end:string|null; company:string; role:string; badge:string|null; badgeColor:string; details:string[] }[] = [
+  { start:'2025-12', end:'2026-08', company:'Kartaca', role:'System Monitoring Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+    'Şişecam fabrikalarındaki üretim sistemlerinin ve makinaların Prometheus ve Grafana ile sürekli izlenmesinde aktif rol aldım.',
+    'Operasyonel olayların ServiceNow üzerinden takibi ve ilk müdahale süreçlerinde görev aldım.',
+    'Monitoring araçları ve olay yönetimi süreçleri konusunda operasyon ekibine destek sağladım.',
+  ] },
+  { start:'2025-08', end:'2025-09', company:'Halkbank', role:'IT Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+    'Kurumsal BT süreçlerini gözlemledim ve teknik ekiplerle birlikte çalışma deneyimi kazandım.',
+  ] },
+  { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım', role:'.NET Developer Intern', badge:'INTERN', badgeColor:'var(--amber)', details:[
+    'REST API geliştirme ve üçüncü parti servislerle entegrasyon çalışmaları gerçekleştirdim.',
+    'Entity Framework Code First yaklaşımı ve SQL tabanlı uygulamalar üzerinde geliştirme yaptım.',
+  ] },
+  { start:'2024-02', end:'2024-08', company:'Acunmedya Akademi', role:'Nish Trainings: C# & ASP.NET', badge:null, badgeColor:'', details:[] },
 ];
 
 const MONTHS_TR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];

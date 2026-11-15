@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { EXPERIENCE, FOCUS, formatPeriod } from '../data/constants';
+import { EXPERIENCE, FOCUS, SUMMARY, EDUCATION, LANGUAGES, SKILLS, CERTIFICATES, formatPeriod } from '../data/constants';
 import { useRemote, Article } from './remote';
 import { Entry, entries } from './fs';
 
@@ -29,16 +29,37 @@ export const BANNER = [
 ].join('\n');
 
 /* ───────── about.txt / experience.log ───────── */
-export const Experience: React.FC = () => (
+export const Experience: React.FC<{ detailed?: boolean }> = ({ detailed }) => (
   <div className="rows">
     {EXPERIENCE.map((exp, i) => (
-      <div key={i} className="exp-row">
-        <span className="c-dim">[{formatPeriod(exp.start, exp.end)}]</span>{' '}
-        <span className="c-bright">{exp.company}</span>
-        <span className="c-dim"> :: </span>
-        <span className="c-cyan">{exp.role}</span>
-        {exp.badge && <span className={exp.end ? 'c-amber' : 'c-green'}> ({exp.badge})</span>}
+      <div key={i} className={detailed ? 'item' : undefined}>
+        <div className="exp-row">
+          <span className="c-dim">[{formatPeriod(exp.start, exp.end)}]</span>{' '}
+          <span className="c-bright">{exp.company}</span>
+          <span className="c-dim"> :: </span>
+          <span className="c-cyan">{exp.role}</span>
+          {exp.badge && <span className={exp.end ? 'c-amber' : 'c-green'}> ({exp.badge})</span>}
+        </div>
+        {detailed && exp.details.map((d, j) => <div key={j} className="bullet prose">- {d}</div>)}
       </div>
+    ))}
+  </div>
+);
+
+export const Skills: React.FC = () => (
+  <div className="kv">
+    {SKILLS.map(([group, items]) => (
+      <React.Fragment key={group}>
+        <span className="c-cyan">{group}</span><span>{items.join(' · ')}</span>
+      </React.Fragment>
+    ))}
+  </div>
+);
+
+export const Certificates: React.FC = () => (
+  <div>
+    {CERTIFICATES.map((name, i) => (
+      <div key={name}><span className="c-dim">[{String(i + 1).padStart(2, '0')}]</span> {name}</div>
     ))}
   </div>
 );
@@ -49,15 +70,19 @@ export const About: React.FC = () => (
     <div className="kv">
       <span className="c-cyan">name</span><span className="c-bright">Enes Aksu</span>
       <span className="c-cyan">role</span><span>Junior DevOps Engineer</span>
-      <span className="c-cyan">education</span><span>Computer Engineer</span>
+      <span className="c-cyan">education</span><span>{EDUCATION.school} — {EDUCATION.degree} <span className="c-dim">({EDUCATION.years} · GNO {EDUCATION.gpa})</span></span>
       <span className="c-cyan">location</span><span>Istanbul, TR</span>
       <span className="c-cyan">status</span><span className="c-green">● available for opportunities</span>
       <span className="c-cyan">focus</span><span>{FOCUS.join(' · ')}</span>
+      <span className="c-cyan">languages</span><span>{LANGUAGES}</span>
     </div>
+    <div className="gap-top prose">{SUMMARY}</div>
+    <div className="c-amber gap-top"># skills</div>
+    <Skills />
     <div className="c-amber gap-top"># experience</div>
     <Experience />
     <div className="c-dim gap-top">
-      devamı: <Cmd run="writings">writings</Cmd> · <Cmd run="projects">projects</Cmd> · <Cmd run="contact">contact</Cmd> · <Cmd run="help">help</Cmd>
+      devamı: <Cmd run="experience">experience</Cmd> · <Cmd run="certs">certs</Cmd> · <Cmd run="writings">writings</Cmd> · <Cmd run="projects">projects</Cmd> · <Cmd run="contact">contact</Cmd> · <Cmd run="help">help</Cmd>
     </div>
   </div>
 );
@@ -228,6 +253,7 @@ const HELP: [string, string][] = [
   ['about', 'hakkımda (cat ~/about.txt)'],
   ['writings', 'Medium yazılarım'],
   ['projects', 'GitHub projelerim'],
+  ['experience, skills, certs', 'deneyim detayları, beceriler, sertifikalar'],
   ['contact', 'iletişim (cat ~/contact.json)'],
   ['ls [-la] [yol]', 'dizini listele'],
   ['cd <dizin>', 'dizin değiştir (cd .. / cd ~)'],

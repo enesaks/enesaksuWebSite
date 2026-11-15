@@ -20,10 +20,12 @@ export const entries = (dir: string, all = false): Entry[] | null => {
     ] : [];
     return [
       ...hidden,
-      { name: 'about.txt', kind: 'file', size: 512 },
+      { name: 'about.txt', kind: 'file', size: 1536 },
+      { name: 'certificates.txt', kind: 'file', size: 318 },
       { name: 'contact.json', kind: 'file', size: 348 },
-      { name: 'experience.log', kind: 'file', size: 421 },
+      { name: 'experience.log', kind: 'file', size: 1042 },
       { name: 'projects', kind: 'dir', size: 4096 },
+      { name: 'skills.txt', kind: 'file', size: 256 },
       { name: 'snake.sh', kind: 'exec', size: 2048 },
       { name: 'writings', kind: 'dir', size: 4096 },
     ];

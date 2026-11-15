@@ -13,12 +13,12 @@ import { BOOT } from './data/constants';
 import { loadRemote } from './terminal/remote';
 import { cwdLabel, cwdAbs, resolvePath, completePath, Kind } from './terminal/fs';
 import {
-  RunContext, About, Experience, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
+  RunContext, About, Experience, Skills, Certificates, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
 } from './terminal/outputs';
 
 const COMMANDS = [
-  'about', 'cat', 'cd', 'clear', 'contact', 'cowsay', 'crt', 'date', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
-  'history', 'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'screensaver', 'snake', 'sound', 'sudo', 'tree',
+  'about', 'cat', 'cd', 'certs', 'clear', 'contact', 'cowsay', 'crt', 'date', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
+  'history', 'hostname', 'ls', 'matrix', 'neofetch', 'open', 'projects', 'pwd', 'screensaver', 'skills', 'snake', 'sound', 'sudo', 'tree',
   'typer', 'uname', 'uptime', 'whoami', 'writings',
 ];
 const WINDOWS = ['about', 'writings', 'projects', 'contact', 'help'];
@@ -115,7 +115,9 @@ const App: React.FC = () => {
     switch (cmd) {
       case 'help': case '?': setActive('help'); return out(<Help />);
       case 'about': setActive('about'); return out(<About />);
-      case 'experience': return out(<Experience />);
+      case 'experience': return out(<Experience detailed />);
+      case 'skills': return out(<Skills />);
+      case 'certs': case 'certificates': return out(<Certificates />);
       case 'writings': case 'blog': setActive('writings'); return out(<Writings />);
       case 'projects': setActive('projects'); return out(<Projects />);
       case 'contact': setActive('contact'); return out(<Contact />);
@@ -164,7 +166,9 @@ const App: React.FC = () => {
           if (!e || e.kind === 'repo') return <div key={i}>{cmd}: {a}: Is a directory</div>;
           if (e.article) return <ArticleFile key={i} article={e.article} />;
           if (e.name === 'about.txt') return <About key={i} />;
-          if (e.name === 'experience.log') return <Experience key={i} />;
+          if (e.name === 'experience.log') return <Experience key={i} detailed />;
+          if (e.name === 'skills.txt') return <Skills key={i} />;
+          if (e.name === 'certificates.txt') return <Certificates key={i} />;
           if (e.name === 'contact.json') return <Contact key={i} />;
           if (e.name === '.bashrc') return <div key={i} className="pre">{BASHRC}</div>;
           if (e.name === '.bash_history') return <div key={i} className="pre">{hist.join('\n')}</div>;
