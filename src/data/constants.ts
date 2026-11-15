@@ -38,7 +38,7 @@ export const FOCUS = ['Linux', 'Docker', 'CI/CD', 'AWS', 'Cloud'];
 
 // start / end: 'YYYY-MM'. end: null => devam ediyor (süre her ziyarette güncel hesaplanır).
 export const EXPERIENCE: { start:string; end:string|null; company:string; role:string; badge:string|null; badgeColor:string }[] = [
-  { start:'2025-12', end:null,      company:'Kartaca',           role:'System Monitoring',            badge:'CURRENT', badgeColor:'var(--green)' },
+  { start:'2025-12', end:'2026-08', company:'Kartaca',           role:'System Monitoring Intern',     badge:'INTERN',  badgeColor:'var(--amber)' },
   { start:'2025-08', end:'2025-09', company:'Halkbank',          role:'Stajyer',                      badge:'INTERN',  badgeColor:'var(--amber)' },
   { start:'2024-09', end:'2024-10', company:'Bilsoft Yazılım',   role:'.NET Developer Intern',        badge:'INTERN',  badgeColor:'var(--amber)' },
   { start:'2024-02', end:'2024-08', company:'Acunmedya Akademi', role:'Nish Trainings: C# & ASP.NET', badge:null,      badgeColor:'' },
