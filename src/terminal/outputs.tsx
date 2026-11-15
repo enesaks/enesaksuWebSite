@@ -156,6 +156,7 @@ export const Projects: React.FC = () => {
           </div>
           <div className="indent prose">{p.desc}</div>
           <div className="indent c-cyan">{p.tags.map(t => `[${t}]`).join(' ')}</div>
+          <div className="indent c-dim"><Cmd run={`cat ~/projects/${p.title}/README.md`}>README.md</Cmd></div>
         </div>
       ))}
     </div>
@@ -258,6 +259,9 @@ const HELP: [string, string][] = [
   ['cd <dizin>', 'dizin değiştir (cd .. / cd ~)'],
   ['cat <dosya>', 'dosyayı yazdır'],
   ['open <hedef>', 'github | linkedin | medium | instagram | mail | dosya | URL'],
+  ['git log [--oneline]', 'kariyer geçmişi, commit olarak'],
+  ['man <komut>', 'komutun kılavuz sayfası'],
+  ['<komut> | grep <kalıp>', 'çıktıyı süz'],
   ['tree, pwd, whoami, date', 'klasik araçlar'],
   ['uname, uptime, echo, history', 'klasik araçlar'],
   ['neofetch', 'sistem özeti'],
@@ -265,12 +269,17 @@ const HELP: [string, string][] = [
   ['matrix, hack, screensaver', 'eğlence'],
   ['fortune, cowsay <söz>', 'günün sözü'],
   ['top, ping <adres>', 'canlı süreç listesi, ağ testi'],
+  ['curl, traceroute, ssh', 'ağ araçları'],
+  ['weather [şehir]', 'hava durumu'],
+  ['vim', 'çıkabilirsen'],
+  ['achievements', 'açtığın başarımlar'],
   ['docker ps|images|run, kubectl get pods', 'sahte konteynerler ve podlar'],
   ['theme green|amber|white|blue', 'fosfor rengini değiştir'],
   ['degauss', 'tüpü manyetik olarak sıfırla'],
   ['sound on|off', 'tüp ve klavye sesleri'],
   ['crt on|off', 'tüp monitör efektlerini aç / kapat'],
   ['clear', 'ekranı temizle (Ctrl+L)'],
+  ['exit', 'monitörü kapat'],
 ];
 
 export const BASHRC = `# ~/.bashrc

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './styles/App.css';
 
 import SnakeGame from './components/SnakeGame';
@@ -8,6 +10,9 @@ import TyperGame from './components/TyperGame';
 import ScreenSaver from './components/ScreenSaver';
 import Knob from './components/Knob';
 import TopView from './components/TopView';
+import Vim from './components/Vim';
+import { GitLog, Achievements, AchievementToast, MAN, Man, Readme, Weather, curlHead, traceroute, ssh } from './terminal/extras';
+import { unlock } from './terminal/achievements';
 import { Step, DockerPs, DockerImages, dockerRun, KubectlPods, ping, rmRoot, THEMES } from './terminal/devops';
 import { click, beep, powerOn, powerOff, degauss, setSound, soundEnabled } from './terminal/sound';
 import { fortune, cowsay } from './terminal/fun';
@@ -15,13 +20,13 @@ import { BOOT } from './data/constants';
 import { loadRemote } from './terminal/remote';
 import { cwdLabel, cwdAbs, resolvePath, completePath, Kind } from './terminal/fs';
 import {
-  RunContext, Cmd, About, Experience, Skills, Certificates, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets,
+  RunContext, Cmd, About, Experience, Skills, Certificates, Contact, Writings, Projects, ArticleFile, Ls, Tree, Neofetch, Help, LINKS, BASHRC, Secrets, BANNER,
 } from './terminal/outputs';
 
 const COMMANDS = [
-  'about', 'cat', 'cd', 'certs', 'clear', 'contact', 'cowsay', 'crt', 'date', 'degauss', 'docker', 'echo', 'exit', 'experience', 'fortune', 'hack', 'help',
-  'history', 'hostname', 'kubectl', 'ls', 'matrix', 'neofetch', 'open', 'ping', 'projects', 'pwd', 'screensaver', 'skills', 'snake', 'sound', 'sudo', 'theme', 'top', 'tree',
-  'typer', 'uname', 'uptime', 'whoami', 'writings',
+  'achievements', 'about', 'cat', 'cd', 'certs', 'clear', 'contact', 'cowsay', 'curl', 'crt', 'date', 'degauss', 'docker', 'echo', 'exit', 'experience', 'fortune', 'git', 'hack', 'help',
+  'history', 'hostname', 'kubectl', 'ls', 'man', 'matrix', 'neofetch', 'open', 'ping', 'projects', 'pwd', 'screensaver', 'skills', 'snake', 'sound', 'ssh', 'sudo', 'theme', 'top', 'traceroute', 'tree',
+  'typer', 'uname', 'uptime', 'vim', 'weather', 'whoami', 'writings',
 ];
 const WINDOWS = ['about', 'writings', 'projects', 'contact', 'help'];
 const HISTORY_KEY = 'enesaks.history';
@@ -30,7 +35,7 @@ const IDLE_MS = 120000;
 const THEME_KEY = 'enesaks.theme';
 const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
 
-type Program = null | 'snake' | 'matrix' | 'hack' | 'typer' | 'saver' | 'top';
+type Program = null | 'snake' | 'matrix' | 'hack' | 'typer' | 'saver' | 'top' | 'vim';
 interface Line { id: number; node: React.ReactNode }
 
 const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -49,6 +54,22 @@ const loadPicture = (): { bri: number; con: number } => {
 const loadTheme = () => { try { const t = localStorage.getItem(THEME_KEY) || 'green'; return THEMES[t] ? t : 'green'; } catch { return 'green'; } };
 const saveTheme = (t: string) => { try { localStorage.setItem(THEME_KEY, t); } catch { /* storage unavailable */ } };
 const saveHistory = (h: string[]) => { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(-100))); } catch { /* storage unavailable */ } };
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const readNumber = (key: string) => { try { return Number(localStorage.getItem(key)) || 0; } catch { return 0; } };
+
+/** Renders an output node off-screen and returns its text, so it can be piped into grep. */
+const nodeToText = (node: React.ReactNode, run: (cmd: string) => void) => {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;opacity:0;pointer-events:none;white-space:pre-wrap;';
+  document.body.appendChild(host);
+  const r = createRoot(host);
+  flushSync(() => r.render(<RunContext.Provider value={run}>{node}</RunContext.Provider>));
+  const text = host.innerText;
+  r.unmount();
+  host.remove();
+  return text;
+};
 
 const Prompt: React.FC<{ cwd: string }> = ({ cwd }) => (
   <span className="prompt"><span className="c-green">enes@enesaks</span>:<span className="c-blue">{cwdLabel(cwd)}</span>$ </span>
@@ -98,6 +119,9 @@ const App: React.FC = () => {
   const jobRef = useRef(false);
   const jobTimers = useRef<number[]>([]);
   const fxTimer = useRef<number>(0);
+  const usedDevops = useRef(new Set<string>());
+  const autoRun = useRef(true);
+  const [vimFile, setVimFile] = useState('notlar.txt');
 
   const print = useCallback((...nodes: React.ReactNode[]) => {
     const fresh = nodes.map(node => ({ id: ++idRef.current, node }));
@@ -116,6 +140,13 @@ const App: React.FC = () => {
   }, []);
 
   const setTheme = useCallback((t: string) => { setThemeState(t); saveTheme(t); }, []);
+
+  /* Announces a newly earned badge right after the output that earned it */
+  const award = useCallback((id: string) => {
+    const a = unlock(id);
+    if (!a) return;
+    window.setTimeout(() => { print(<AchievementToast title={a.title} hint={a.hint} />); beep(1320); }, 60);
+  }, [print]);
 
   const endJob = useCallback(() => {
     jobTimers.current.forEach(clearTimeout);
@@ -142,7 +173,7 @@ const App: React.FC = () => {
   }, [print, flash, endJob]);
 
   /* ───────── command interpreter ───────── */
-  const execute = useCallback((raw: string) => {
+  const execute = useCallback((raw: string, capture?: (node: React.ReactNode) => void) => {
     const here = cwdRef.current;
     const echo = <div className="echo"><Prompt cwd={here} />{raw}</div>;
     const trimmed = raw.trim();
@@ -151,12 +182,41 @@ const App: React.FC = () => {
     if (!trimmed) { print(echo); return; }
 
     const hist = histRef.current;
-    if (hist[hist.length - 1] !== trimmed) { hist.push(trimmed); saveHistory(hist); }
+    if (!capture) {
+      if (hist[hist.length - 1] !== trimmed) { hist.push(trimmed); saveHistory(hist); }
+      // the automatic `cat about.txt` at boot is not the visitor's own first command
+      if (autoRun.current) autoRun.current = false; else award('hello');
+    }
+
+    /* cmd | grep [-i] pattern */
+    const pipeAt = trimmed.indexOf('|');
+    if (pipeAt > 0 && !capture) {
+      const right = trimmed.slice(pipeAt + 1).trim().split(/\s+/);
+      const show = (node: React.ReactNode) => print(echo, <div className="out">{node}</div>);
+      if (right[0] !== 'grep') return show(`bash: ${right[0] || '|'}: yalnızca grep'e boru desteklenir`);
+      const ignoreCase = right.includes('-i');
+      const pattern = right.slice(1).filter(a => !a.startsWith('-')).join(' ').replace(/^(["'])(.*)\1$/, '$2');
+      if (!pattern) return show('kullanım: <komut> | grep [-i] <kalıp>');
+      let captured: React.ReactNode = null;
+      execute(trimmed.slice(0, pipeAt), node => { captured = node; });
+      const text = captured ? nodeToText(captured, () => {}) : '';
+      const re = new RegExp(escapeRe(pattern), ignoreCase ? 'gi' : 'g');
+      const matches = text.split('\n').filter(l => { re.lastIndex = 0; return re.test(l); });
+      award('grep');
+      return show(
+        <div className="pre">
+          {matches.map((l, i) => (
+            <div key={i}>{l.split(re).flatMap((part, j, arr) => (j < arr.length - 1 ? [part, <span key={j} className="grep-hit">{l.match(re)?.[j]}</span>] : [part]))}</div>
+          ))}
+        </div>,
+      );
+    }
 
     const [name, ...args] = trimmed.split(/\s+/);
     const cmd = name.toLowerCase();
-    const out = (node: React.ReactNode) => print(echo, <div className="out">{node}</div>);
-    const launch = (p: Program) => { print(echo); setProgram(p); inputRef.current?.blur(); };
+    const out = (node: React.ReactNode) => (capture ? capture(node) : print(echo, <div className="out">{node}</div>));
+    const launch = (p: Program) => { if (capture) return capture(null); print(echo); setProgram(p); inputRef.current?.blur(); };
+    const stream = (steps: Step[]) => (capture ? capture(<>{steps.map((s, i) => <div key={i}>{s.node}</div>)}</>) : runJob(echo, steps));
 
     switch (cmd) {
       case 'help': case '?': setActive('help'); return out(<Help />);
@@ -187,6 +247,7 @@ const App: React.FC = () => {
         const target = args.find(a => !a.startsWith('-'));
         const r = target ? resolvePath(here, target) : { ok: true as const, dir: here, entry: undefined };
         if (!r.ok) return out(`ls: cannot access '${target}': No such file or directory`);
+        if (flags.includes('a')) award('explorer');
         return out(<Ls dir={r.dir} long={cmd === 'll' || flags.includes('l')} all={flags.includes('a')} only={r.entry} />);
       }
 
@@ -210,7 +271,8 @@ const App: React.FC = () => {
           if (!r.ok) return <div key={i}>{cmd}: {a}: No such file or directory</div>;
           const e = r.entry;
           if (!e || e.kind === 'repo') return <div key={i}>{cmd}: {a}: Is a directory</div>;
-          if (e.article) return <ArticleFile key={i} article={e.article} />;
+          if (e.article) { award('reader'); return <ArticleFile key={i} article={e.article} />; }
+          if (e.readmeOf) return <Readme key={i} project={e.readmeOf} />;
           if (e.name === 'about.txt') return <About key={i} />;
           if (e.name === 'experience.log') return <Experience key={i} detailed />;
           if (e.name === 'skills.txt') return <Skills key={i} />;
@@ -258,32 +320,65 @@ const App: React.FC = () => {
           );
         }
         setTheme(arg);
+        award('theme');
         flash('degauss');
         return out(`tema: ${arg} — ${THEMES[arg]}`);
       }
       case 'degauss': flash('degauss'); return out('*BZZZT* degauss tamam, tüp manyetik olarak sıfırlandı.');
       case 'top': case 'htop': return launch('top');
-      case 'ping': return runJob(echo, ping(args.find(a => !a.startsWith('-')) || 'enesaks.com'));
+      case 'ping': return stream(ping(args.find(a => !a.startsWith('-')) || 'enesaks.com'));
       case 'docker': {
+        usedDevops.current.add('docker');
+        if (usedDevops.current.size === 2) award('devops');
         const sub = (args[0] || '').toLowerCase();
         if (sub === 'ps') return out(<DockerPs />);
         if (sub === 'images') return out(<DockerImages />);
-        if (sub === 'run') return runJob(echo, dockerRun(args.slice(1).find(a => !a.startsWith('-')) || 'hello-world'));
+        if (sub === 'run') return stream(dockerRun(args.slice(1).find(a => !a.startsWith('-')) || 'hello-world'));
         return out('kullanım: docker ps | docker images | docker run <imaj>');
       }
       case 'kubectl': case 'k': {
+        usedDevops.current.add('kubectl');
+        if (usedDevops.current.size === 2) award('devops');
         if ((args[0] || '').toLowerCase() === 'get' && /^(po|pod|pods)$/i.test(args[1] || '')) return out(<KubectlPods />);
         return out('kullanım: kubectl get pods');
       }
+
+      case 'git': {
+        const sub = (args[0] || '').toLowerCase();
+        if (sub === 'log') return out(<GitLog oneline={args.includes('--oneline')} />);
+        if (sub === 'status') return out(<div><div>On branch main</div><div>Your branch is up to date with 'origin/main'.</div><div className="gap-top">nothing to commit, working tree clean <span className="c-dim">(kariyer hâlâ geliştiriliyor)</span></div></div>);
+        return out('kullanım: git log [--oneline] | git status');
+      }
+      case 'man': {
+        const page = (args[0] || '').toLowerCase();
+        if (!page) return out('What manual page do you want?');
+        if (!MAN[page]) return out(`No manual entry for ${page}`);
+        return out(<Man cmd={page} />);
+      }
+      case 'achievements': return out(<Achievements />);
+      case 'weather': award('weather'); return out(<Weather city={args.join(' ') || 'İstanbul'} />);
+      case 'curl': case 'wget': {
+        const url = args.find(a => !a.startsWith('-'));
+        if (!url) return out(`${cmd}: try '${cmd} enesaks.com'`);
+        if (/wttr\.in/i.test(url)) { award('weather'); return out(<Weather city={url.split('/')[1] || 'İstanbul'} />); }
+        return out(curlHead(url));
+      }
+      case 'traceroute': case 'tracert': return stream(traceroute(args.find(a => !a.startsWith('-')) || 'enesaks.com'));
+      case 'ssh': return stream(ssh(args.find(a => !a.startsWith('-')) || ''));
+      case 'vim': case 'vi': case 'nvim':
+        if (capture) return capture(null);
+        setVimFile(args[0] || 'notlar.txt');
+        return launch('vim');
+      case 'nano': case 'emacs': return out(`${cmd}? Gerçek terminalci vim kullanır ;)  — vim yazmayı dene`);
 
       case 'snake': case './snake.sh': case 'snake.sh': return launch('snake');
       case 'matrix': case 'cmatrix': return launch('matrix');
       case 'hack': return launch('hack');
 
       case 'sudo': case 'please': {
-        if (args[0] === 'rm' && args.includes('/')) return runJob(echo, rmRoot());
+        if (args[0] === 'rm' && args.includes('/')) { award('panic'); return stream(rmRoot()); }
         const r = args[0] === 'cat' && args[1] ? resolvePath(here, args[1]) : null;
-        if (r && r.ok && r.entry?.name === '.secrets') return out(<Secrets />);
+        if (r && r.ok && r.entry?.name === '.secrets') { award('root'); return out(<Secrets />); }
         return out('enes is not in the sudoers file.  This incident will be reported.');
       }
       case 'su': return out('su: Authentication failure');
@@ -291,7 +386,7 @@ const App: React.FC = () => {
       case 'typer': return launch('typer');
       case 'screensaver': return launch('saver');
       case 'fortune': return out(fortune());
-      case 'cowsay': return out(<div className="cow">{cowsay(trimmed.slice(6).trim().replace(/^(["'])(.*)\1$/, '$2') || fortune())}</div>);
+      case 'cowsay': award('cow'); return out(<div className="cow">{cowsay(trimmed.slice(6).trim().replace(/^(["'])(.*)\1$/, '$2') || fortune())}</div>);
       case 'sound': {
         const arg = (args[0] || '').toLowerCase();
         if (arg !== 'on' && arg !== 'off') return out(`kullanım: sound on|off  (şu an: ${soundEnabled() ? 'on' : 'off'})`);
@@ -299,16 +394,20 @@ const App: React.FC = () => {
         return out(`ses: ${arg}`);
       }
       case 'rm':
-        if (args.some(a => /^-\w*r/i.test(a)) && args.includes('/')) return runJob(echo, rmRoot());
+        if (args.some(a => /^-\w*r/i.test(a)) && args.includes('/')) { award('panic'); return stream(rmRoot()); }
         return out(`rm: cannot remove '${args[args.length - 1] || '.'}': Read-only file system`);
-      case 'mv': case 'touch': case 'mkdir': case 'cp': case 'nano': case 'vim': case 'vi':
+      case 'mv': case 'touch': case 'mkdir': case 'cp':
         return out(`${cmd}: cannot modify '${args[args.length - 1] || '.'}': Read-only file system`);
-      case 'exit': case 'logout': return out(<span>logout<br /><span className="c-dim">(bu oturum kapanmaz — çıkmak için sekmeyi kapat)</span></span>);
+      case 'exit': case 'logout':
+        if (capture) return capture('logout');
+        print(echo, <div className="out">logout</div>);
+        window.setTimeout(() => { powerOff(); setPower(false); award('off'); }, 500);
+        return;
 
       default:
         return out(<span>bash: {name}: command not found<br /><span className="c-dim">komut listesi için: help</span></span>);
     }
-  }, [print, runJob, flash, setTheme, theme]);
+  }, [print, runJob, flash, setTheme, theme, award]);
 
   /* Types a command into the prompt and runs it — used by clickable names and the status bar. */
   const typeAndRun = useCallback((cmd: string) => {
@@ -343,7 +442,8 @@ const App: React.FC = () => {
     );
     setBooting(false);
     setTimeout(() => typeAndRun('cat about.txt'), 300);
-  }, [print, typeAndRun]);
+    if (new Date().getHours() < 5) setTimeout(() => award('night'), 4000);
+  }, [print, typeAndRun, award]);
 
   useEffect(() => {
     loadRemote();
@@ -397,7 +497,7 @@ const App: React.FC = () => {
     }
     if (!names.length) { beep(); return; }
     if (names.length === 1) {
-      setLine(head + base + names[0].name + (names[0].kind === 'dir' ? '/' : ' '));
+      setLine(head + base + names[0].name + (names[0].kind === 'dir' || names[0].kind === 'repo' ? '/' : ' '));
       return;
     }
     let common = names[0].name;
@@ -455,12 +555,16 @@ const App: React.FC = () => {
     if (message) print(<div className="out c-dim">{message}</div>);
     focusInput();
   }, [print, focusInput]);
-  const quitTyper = useCallback(() => quitProgram('[typer] oyun kapatıldı'), [quitProgram]);
+  const quitTyper = useCallback(() => { quitProgram('[typer] oyun kapatıldı'); if (readNumber('enesaks.typer.hi') >= 40) award('typer'); }, [quitProgram, award]);
   const quitSaver = useCallback(() => quitProgram(), [quitProgram]);
-  const quitSnake = useCallback(() => quitProgram('[snake] oyun kapatıldı'), [quitProgram]);
+  const quitSnake = useCallback(() => { quitProgram('[snake] oyun kapatıldı'); if (readNumber('enesaks.snake.hi') >= 10) award('snake'); }, [quitProgram, award]);
   const quitMatrix = useCallback(() => quitProgram('[matrix] simulation ended'), [quitProgram]);
   const quitHack = useCallback(() => quitProgram('[hack] connection terminated'), [quitProgram]);
   const quitTop = useCallback(() => quitProgram(), [quitProgram]);
+  const quitVim = useCallback((escaped: boolean) => {
+    quitProgram(escaped ? '[vim] tebrikler, vim\'den çıkmayı başardın.' : '[vim] kaçış kapısını kullandın — bir dahaki sefere :q dene.');
+    if (escaped) award('vim');
+  }, [quitProgram, award]);
 
   /* Ctrl+C interrupts a streamed command */
   useEffect(() => {
@@ -492,10 +596,11 @@ const App: React.FC = () => {
       });
       flash('degauss');
       print(<div className="out c-amber">↑↑↓↓←→←→BA — gizli kod kabul edildi, fosfor rengi değişti.</div>);
+      award('konami');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [flash, print]);
+  }, [flash, print, award]);
 
   /* Screen saver after two idle minutes at the prompt */
   useEffect(() => {
@@ -513,8 +618,29 @@ const App: React.FC = () => {
     try { localStorage.setItem(PICTURE_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
   };
   const togglePower = () => {
-    if (power) powerOff(); else powerOn();
+    if (power) { powerOff(); award('off'); } else { powerOn(); focusInput(); }
     setPower(!power);
+  };
+
+  /* While the monitor is off, any key or click on the screen turns it back on */
+  useEffect(() => {
+    if (power) return;
+    const wake = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      powerOn();
+      setPower(true);
+      focusInput();
+    };
+    const arm = window.setTimeout(() => window.addEventListener('keydown', wake), 400);
+    return () => { clearTimeout(arm); window.removeEventListener('keydown', wake); };
+  }, [power, focusInput]);
+
+  /* On-screen keys for phones, which have no Tab, arrows or Ctrl */
+  const virtualKey = (key: string, ctrl = false) => {
+    if (key === '|') { setLine(input.replace(/\s*$/, '') + ' | '); inputRef.current?.focus({ preventScroll: true }); return; }
+    onKeyDown({ key, ctrlKey: ctrl, metaKey: false, altKey: false, preventDefault: () => {} } as unknown as React.KeyboardEvent<HTMLInputElement>);
+    inputRef.current?.focus({ preventScroll: true });
   };
   // Knob at centre = neutral picture; the ends are clearly dim / washed out but still readable.
   const pictureVars = { '--bri': (0.45 + picture.bri * 1.1).toFixed(2), '--con': (0.6 + picture.con * 0.8).toFixed(2) } as React.CSSProperties;
@@ -524,7 +650,7 @@ const App: React.FC = () => {
   return (
     <div className={`room theme-${theme}${crt ? '' : ' crt-off'}${power ? '' : ' power-off'}`}>
       <div className="monitor" style={pictureVars}>
-        <div className="screen">
+        <div className="screen" onClick={() => { if (!power) togglePower(); }}>
           <div className={`tube${fx ? ` tube-${fx}` : ''}`}>
             <div className="viewport">
             <RunContext.Provider value={typeAndRun}>
@@ -537,7 +663,7 @@ const App: React.FC = () => {
                 {lines.map(l => <div key={l.id} data-line={l.id}>{l.node}</div>)}
 
                 {/* No prompt while a full-screen program owns the keyboard */}
-                {!booting && !program && !job && (
+                {!booting && !program && !job && power && (
                   <div className="input-line">
                     <Prompt cwd={cwd} />
                     <span>{input.slice(0, caret)}</span>
@@ -569,7 +695,16 @@ const App: React.FC = () => {
             {program === 'typer' && <div className="program"><TyperGame onQuit={quitTyper} /></div>}
             {program === 'saver' && <div className="program"><ScreenSaver onQuit={quitSaver} /></div>}
             {program === 'top' && <div className="program"><TopView onQuit={quitTop} /></div>}
+            {program === 'vim' && <div className="program"><Vim file={vimFile} onQuit={quitVim} /></div>}
             </div>
+
+            {!booting && !program && !job && power && (
+              <div className="softkeys" aria-label="Kısayol tuşları">
+                {([['Tab', 'Tab'], ['↑', 'ArrowUp'], ['↓', 'ArrowDown'], ['|', '|'], ['^C', 'c', true], ['^L', 'l', true]] as [string, string, boolean?][]).map(([label, key, ctrl]) => (
+                  <button key={label} type="button" onPointerDown={e => e.preventDefault()} onClick={() => virtualKey(key, ctrl)}>{label}</button>
+                ))}
+              </div>
+            )}
 
             {/* tmux-style status bar: the clickable way around for visitors who would rather not type */}
             <div className="tmux">
@@ -590,6 +725,7 @@ const App: React.FC = () => {
           <div className="fx fx-scan" />
           <div className="fx fx-roll" />
           <div className="fx fx-flicker" />
+          <div className="fx fx-burn" aria-hidden="true"><pre>{BANNER}</pre></div>
           <div className="fx fx-glass" />
         </div>
 

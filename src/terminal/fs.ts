@@ -2,7 +2,7 @@ import { getRemote, Article, Project } from './remote';
 
 /** A tiny read-only virtual file system: ~ with two directories fed by Medium and GitHub. */
 export type Kind = 'dir' | 'file' | 'exec' | 'repo';
-export interface Entry { name: string; kind: Kind; size: number; article?: Article; project?: Project; hidden?: boolean; owner?: string; mode?: string }
+export interface Entry { name: string; kind: Kind; size: number; article?: Article; project?: Project; hidden?: boolean; owner?: string; mode?: string; readmeOf?: Project }
 
 export const HOME = '/home/enes';
 /** cwd is '' for ~, or the name of a first-level directory. */
@@ -64,6 +64,9 @@ export const resolvePath = (cwd: string, arg: string): Resolved => {
   const child = entries(top.name)!.find(e => e.name === segs[1]);
   if (!child) return { ok: false, reason: 'notfound' };
   if (segs.length === 2) return { ok: true, dir: top.name, entry: child };
+  if (segs.length === 3 && child.kind === 'repo' && /^readme(\.md)?$/i.test(segs[2])) {
+    return { ok: true, dir: top.name, entry: { name: 'README.md', kind: 'file', size: 2048, readmeOf: child.project } };
+  }
   return { ok: false, reason: child.kind === 'repo' ? 'notfound' : 'notdir' };
 };
 
@@ -73,6 +76,9 @@ export const completePath = (cwd: string, partial: string): { base: string; name
   const base = cut >= 0 ? partial.slice(0, cut + 1) : '';
   const prefix = cut >= 0 ? partial.slice(cut + 1) : partial;
   const target = base ? resolvePath(cwd, base) : ({ ok: true, dir: cwd } as Resolved);
+  if (target.ok && target.entry?.kind === 'repo') {
+    return { base, names: 'README.md'.startsWith(prefix) ? [{ name: 'README.md', kind: 'file' as Kind }] : [] };
+  }
   if (!target.ok || target.entry) return { base, names: [] };
   const list = entries(target.dir, prefix.startsWith('.')) || [];
   return { base, names: list.filter(e => e.name.startsWith(prefix)).map(e => ({ name: e.name, kind: e.kind })) };
