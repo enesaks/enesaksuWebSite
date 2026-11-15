@@ -36,14 +36,9 @@ export const PROJECTS = [
 
 export const FOCUS = ['Linux', 'Docker', 'CI/CD', 'AWS', 'Cloud'];
 
-export const SUMMARY =
-  'Bilgisayar Mühendisliği mezunu olarak yazılım geliştirme geçmişimin ardından kariyerimi DevOps ve Cloud alanlarına yönlendirdim. ' +
-  'Linux sistemleri, Docker, AWS servisleri ve sistem izleme araçları üzerinde uygulamalı deneyim edindim. ' +
-  'CI/CD, Kubernetes, Infrastructure as Code ve Cloud Engineering alanlarında uzmanlaşmayı hedefliyorum.';
-
 export const EDUCATION = { school: 'Bolu Abant İzzet Baysal Üniversitesi', degree: 'Bilgisayar Mühendisliği', years: '2022 – 2025', gpa: '3.17 / 4.00' };
 
-export const LANGUAGES = 'İngilizce (A2–B1)';
+export const LANGUAGES = 'İngilizce (B1)';
 
 export const SKILLS: [string, string[]][] = [
   ['cloud',      ['AWS (EC2, S3, IAM, Auto Scaling, Load Balancer)']],

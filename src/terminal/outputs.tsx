@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { EXPERIENCE, FOCUS, SUMMARY, EDUCATION, LANGUAGES, SKILLS, CERTIFICATES, formatPeriod } from '../data/constants';
+import { EXPERIENCE, FOCUS, EDUCATION, LANGUAGES, SKILLS, CERTIFICATES, formatPeriod } from '../data/constants';
 import { useRemote, Article } from './remote';
 import { Entry, entries } from './fs';
 
@@ -76,7 +76,6 @@ export const About: React.FC = () => (
       <span className="c-cyan">focus</span><span>{FOCUS.join(' · ')}</span>
       <span className="c-cyan">languages</span><span>{LANGUAGES}</span>
     </div>
-    <div className="gap-top prose">{SUMMARY}</div>
     <div className="c-amber gap-top"># skills</div>
     <Skills />
     <div className="c-amber gap-top"># experience</div>
